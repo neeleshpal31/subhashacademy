@@ -2,16 +2,26 @@
 
 {% block title %}About | Subhash Academy{% endblock %}
 
-{% set director_image = url_for('static', filename='director.jpg') %}
+{% set director_image = url_for('static', filename='director.jpeg', v='20260313a') %}
 {% set fallback_logo = url_for('static', filename='logo.jpg') %}
+{% set college_logo = url_for('static', filename='logo.jpg') %}
 
 {% block content %}
 <section class="page-hero">
 	<div class="container">
-		<div class="section-heading centered reveal-up">
-			<span class="eyebrow">About Us</span>
-			<h1>Subhash Academy (College of IT &amp; Management)</h1>
-			<p>Subhash Academy is a leading institution for computer, management, and professional education in Kannauj district. The institute is approved by AICTE (All India Council for Technical Education, New Delhi) and associated with Makhanlal Chaturvedi National University of Journalism and Communication, Bhopal. We have been offering professional programs since 1998, including DCA, BCA, and PGDCA.</p>
+		<div class="split-panel reveal-up about-hero-panel">
+			<div>
+				<span class="eyebrow">About Us</span>
+				<h1>Subhash Academy (College of IT &amp; Management)</h1>
+				<p>Subhash Academy is a leading institution for computer, management, and professional education in Kannauj district. The institute is approved by AICTE (All India Council for Technical Education, New Delhi) and associated with Makhanlal Chaturvedi National University of Journalism and Communication, Bhopal. We have been offering professional programs since 1998, including DCA, BCA, and PGDCA.</p>
+			</div>
+			<div class="about-logo-wrap">
+				<img
+					src="{{ college_logo }}"
+					alt="Subhash Academy Logo"
+					class="about-college-logo"
+				>
+			</div>
 		</div>
 	</div>
 </section>
@@ -67,9 +77,9 @@
 				<p>For course details, admissions, and counseling support, contact the admission desk directly.</p>
 			</div>
 			<ul class="simple-list" style="margin: 0;">
-				<li>Mobile: 9335939000</li>
-				<li>Mobile: 9839277322</li>
-				<li>Mobile: 9415147186</li>
+				<li><strong>Naseem Zama Khan</strong> — System Manager<br>Mob: 9335939000</li>
+				<li><strong>Mayank Saxena</strong> — Office Admin<br>Mob: 7275024000</li>
+				<li><strong>Devesh Saxena</strong> — Director<br>Mob: 9415147186</li>
 				<li>Email: subhashacademy@gmail.com</li>
 			</ul>
 		</div>
