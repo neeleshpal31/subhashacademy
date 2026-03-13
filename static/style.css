@@ -565,6 +565,22 @@ h4 {
 	padding: 1.8rem;
 }
 
+.aicte-feature-card {
+	display: flex;
+	flex-direction: column;
+	gap: 0.8rem;
+}
+
+.aicte-feature-logo {
+	width: 92px;
+	height: 92px;
+	object-fit: contain;
+	padding: 0.35rem;
+	border-radius: 16px;
+	background: rgba(255, 255, 255, 0.9);
+	border: 1px solid rgba(24, 59, 86, 0.14);
+}
+
 .program-duration,
 .tag-chip,
 .timeline-year {

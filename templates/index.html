@@ -3,6 +3,7 @@
 {% block title %}Subhash Academy | Home{% endblock %}
 
 {% set college_bg = url_for('static', filename='college-bg.jpg', v='20260312b') %}
+{% set aicte_logo = url_for('static', filename='AICTE LOGO.png', v='20260313a') %}
 
 {% block content %}
 <section class="hero-section college-hero-bg" style="background-image: linear-gradient(120deg, rgba(12, 35, 56, 0.76), rgba(12, 35, 56, 0.46)), url('{{ college_bg }}');">
@@ -53,7 +54,8 @@
 			<h2>An institute built for real-world success</h2>
 		</div>
 		<div class="feature-grid">
-			<article class="feature-card reveal-up">
+			<article class="feature-card reveal-up aicte-feature-card">
+				<img src="{{ aicte_logo }}" alt="AICTE Approved Logo" class="aicte-feature-logo">
 				<h3>AICTE Approved</h3>
 				<p>Our programs are approved by the All India Council for Technical Education, ensuring nationally recognized credentials for every graduate.</p>
 			</article>
