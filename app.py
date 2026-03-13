@@ -27,6 +27,16 @@ def about():
 def courses():
     return render_template("courses.html", active_page="courses")
 
+# Library
+@app.route("/library")
+@app.route("/library/")
+@app.route("/library.html")
+@app.route("/lab")
+@app.route("/lab/")
+@app.route("/lab.html")
+def library():
+    return render_template("library.html", active_page="library")
+
 # Gallery
 @app.route("/gallery")
 def gallery():

@@ -2,89 +2,76 @@
 
 {% block title %}About | Subhash Academy{% endblock %}
 
+{% set director_image = url_for('static', filename='director.jpg') %}
+{% set fallback_logo = url_for('static', filename='logo.jpg') %}
+
 {% block content %}
 <section class="page-hero">
 	<div class="container">
 		<div class="section-heading centered reveal-up">
 			<span class="eyebrow">About Us</span>
-			<h1>Shaping IT Professionals Since 1998 — Trusted by Families Across Kannauj.</h1>
-			<p>Subhash Academy (College of IT &amp; Management) is an AICTE approved institution affiliated to Makhanlal Chaturvedi National University, Bhopal. We have been delivering quality professional education to students of Chhibramau, Kannauj, Farrukhabad and surrounding regions for over two decades.</p>
+			<h1>Subhash Academy (College of IT &amp; Management)</h1>
+			<p>Subhash Academy is a leading institution for computer, management, and professional education in Kannauj district. The institute is approved by AICTE (All India Council for Technical Education, New Delhi) and associated with Makhanlal Chaturvedi National University of Journalism and Communication, Bhopal. We have been offering professional programs since 1998, including DCA, BCA, and PGDCA.</p>
 		</div>
 	</div>
 </section>
 
 <section class="section-space pt-0">
 	<div class="container">
-		<div class="about-grid">
-			<article class="panel-card reveal-up">
-				<h2>Our Mission</h2>
-				<p>To provide quality education that prepares students for the challenges of the modern world, fostering critical thinking, innovation, and ethical leadership. We believe every student deserves access to excellent professional education regardless of their background.</p>
-			</article>
-			<article class="panel-card reveal-up delay-1">
-				<h2>Our Vision</h2>
-				<p>To be a globally recognized institution of academic excellence, producing graduates who are not only technically proficient but also socially responsible and ethically sound — future leaders who make a positive impact on society.</p>
-			</article>
-		</div>
-		<div class="timeline-panel reveal-up delay-2">
-			<div>
-				<span class="timeline-year">Est. 1998</span>
-				<p>Subhash Academy was founded in Chhibramau, Kannauj with a mission to bring reliable IT and management education to students of rural and semi-urban Uttar Pradesh.</p>
-			</div>
-			<div>
-				<span class="timeline-year">AICTE Approved</span>
-				<p>Recognized and approved by the All India Council for Technical Education (ID: 1-44512605107), ensuring programs meet the highest national standards for professional education.</p>
-			</div>
-			<div>
-				<span class="timeline-year">MCU Affiliated</span>
-				<p>Affiliated to Makhanlal Chaturvedi National University of Journalism &amp; Communication, Bhopal — a renowned institution known for academic excellence and industry-aligned curriculum.</p>
-			</div>
-		</div>
-	</div>
-</section>
-
-<section class="section-space section-surface">
-	<div class="container">
-		<div class="section-heading centered reveal-up">
-			<span class="eyebrow">Our Faculty</span>
-			<h2>Experienced educators committed to student success</h2>
-		</div>
-		<div class="feature-grid">
-			<article class="feature-card reveal-up">
-				<h3>Devesh Kumar Saxena</h3>
-				<p><strong>Director &mdash; MBA &mdash; 15 yrs</strong><br>Visionary leader dedicated to bringing world-class IT education to rural students and building cutting-edge infrastructure in Chhibramau.</p>
-			</article>
-			<article class="feature-card reveal-up delay-1">
-				<h3>Naseem Zama Khan</h3>
-				<p><strong>System Manager &mdash; M.Tech (IT) &mdash; 23 yrs</strong><br>Highly experienced in IT systems management, ensuring the college's infrastructure and academics remain at the highest technical standard.</p>
-			</article>
-			<article class="feature-card reveal-up delay-2">
-				<h3>Mahboob Siddiqui</h3>
-				<p><strong>HOD &mdash; MCA &mdash; 18 yrs</strong><br>Head of Department with deep expertise in Computer Applications, guiding the academic direction of BCA and PGDCA programs.</p>
-			</article>
-			<article class="feature-card reveal-up">
-				<h3>Mayank Jeet Saxena</h3>
-				<p><strong>Office Admin &mdash; M.Sc (CS) &mdash; 24 yrs</strong><br>Over two decades of academic administration experience, ensuring smooth operations and student welfare within the institution.</p>
-			</article>
-			<article class="feature-card reveal-up delay-1">
-				<h3>Anchal Dixit</h3>
-				<p><strong>Communication &mdash; MCA &mdash; 5 yrs</strong><br>Focused on developing students' communication and professional skills alongside their technical knowledge.</p>
-			</article>
-			<article class="feature-card reveal-up delay-2">
-				<h3>Puneet Rajput</h3>
-				<p><strong>Java &mdash; MCA &mdash; 3 yrs</strong><br>Specializes in Java programming and application development, helping students build strong coding foundations.</p>
-			</article>
+		<div class="panel-card reveal-up">
+			<span class="eyebrow">Why Choose Us</span>
+			<h2>Trusted professional institute in Kannauj</h2>
+			<ul class="simple-list" style="margin-bottom: 0;">
+				<li>Institute situated in the heart of the city</li>
+				<li>Fully Wi-Fi equipped campus</li>
+				<li>Reasonable fee structure</li>
+				<li>Highly qualified and experienced teaching faculty</li>
+				<li>Multimedia classrooms with LCD projector</li>
+				<li>Well-equipped and spacious lab with modern software and networking facility</li>
+				<li>Rich library with more than 2000 books</li>
+				<li>Practical and theory examination center within the city</li>
+				<li>Lecture and practical classes throughout the week (6 hours per day)</li>
+				<li>Monthly unit test for student assessment and parent feedback</li>
+				<li>Personal care and individual attention for students</li>
+				<li>Group discussions, English and phonetics classes for personality development</li>
+				<li>Placement ratio above 70 percent</li>
+			</ul>
 		</div>
 	</div>
 </section>
 
 <section class="section-space">
 	<div class="container">
-		<div class="panel-card reveal-up">
-			<span class="eyebrow">Director's Message</span>
-			<blockquote style="border-left: 3px solid var(--color-accent); padding-left: 1.25rem; margin: 1rem 0;">
-				<p>My vision is to push this institution to the zenith of excellence by providing the best infrastructure and teaching facilities to aspiring students, transforming them into world-class techno-professionals. Development of quality education in rural areas is challenging, yet we have been considerably successful in implementing good professional courses with quality standards. I am thankful to our faculty, system manager, and guardians for their co-operation in making this dream a reality.</p>
-			</blockquote>
-			<p><strong>Devesh Kumar Saxena</strong> &mdash; Director, Subhash Academy</p>
+		<div class="split-panel reveal-up" style="margin-bottom: 1.5rem;">
+			<div>
+				<span class="eyebrow">Director's Message</span>
+				<h2>Words from the Director</h2>
+				<p>Our aim is to provide quality education with practical learning, discipline, and strong career support. We are committed to building confident and skilled professionals through experienced faculty, modern labs, and student-centered guidance.</p>
+				<p><strong>Devesh Kumar Saxena</strong><br>Director, Subhash Academy</p>
+			</div>
+			<div class="d-flex justify-content-center align-items-center">
+				<img
+					src="{{ director_image }}"
+					alt="Director, Subhash Academy"
+					class="img-fluid"
+					style="width: 240px; height: 240px; object-fit: cover; border-radius: 50%; border: 6px solid rgba(255, 179, 71, 0.8); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);"
+					onerror="this.onerror=null;this.src='{{ fallback_logo }}';"
+				>
+			</div>
+		</div>
+
+		<div class="split-panel reveal-up">
+			<div>
+				<span class="eyebrow">Admissions Contact</span>
+				<h2>Enroll Now</h2>
+				<p>For course details, admissions, and counseling support, contact the admission desk directly.</p>
+			</div>
+			<ul class="simple-list" style="margin: 0;">
+				<li>Mobile: 9335939000</li>
+				<li>Mobile: 9839277322</li>
+				<li>Mobile: 9415147186</li>
+				<li>Email: subhashacademy@gmail.com</li>
+			</ul>
 		</div>
 	</div>
 </section>

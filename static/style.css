@@ -683,6 +683,32 @@ h4 {
 	background: linear-gradient(135deg, rgba(255, 107, 154, 0.1), rgba(57, 160, 237, 0.1));
 }
 
+.incharge-highlight {
+	background: linear-gradient(145deg, rgba(255, 235, 189, 0.96), rgba(255, 226, 239, 0.96), rgba(226, 245, 255, 0.94));
+	border: 1px solid rgba(255, 179, 71, 0.45);
+	box-shadow: 0 22px 48px rgba(255, 179, 71, 0.22);
+	position: relative;
+	overflow: hidden;
+}
+
+.incharge-highlight::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(110deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0));
+	pointer-events: none;
+}
+
+.incharge-highlight h2 {
+	margin-bottom: 0.8rem;
+}
+
+.incharge-highlight .tag-chip {
+	margin-bottom: 0.9rem;
+	background: linear-gradient(135deg, rgba(34, 51, 109, 0.12), rgba(15, 139, 141, 0.14));
+	color: var(--navy);
+}
+
 .contact-chip span {
 	display: block;
 	color: var(--muted);
@@ -898,6 +924,17 @@ h4,
 		linear-gradient(180deg, rgba(17, 25, 48, 0.6), rgba(9, 13, 26, 0.95)),
 		radial-gradient(circle at left bottom, rgba(255, 107, 154, 0.16), transparent 18%),
 		radial-gradient(circle at right bottom, rgba(57, 160, 237, 0.16), transparent 20%);
+}
+
+.incharge-highlight {
+	background: linear-gradient(145deg, rgba(48, 35, 20, 0.9), rgba(52, 29, 53, 0.88), rgba(24, 45, 70, 0.88));
+	border-color: rgba(255, 179, 71, 0.48);
+	box-shadow: 0 22px 48px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 179, 71, 0.2) inset;
+}
+
+.incharge-highlight .tag-chip {
+	background: linear-gradient(135deg, rgba(255, 179, 71, 0.24), rgba(57, 160, 237, 0.24));
+	color: #f8fbff;
 }
 
 .reveal-up {

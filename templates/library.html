@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Library | Subhash Academy{% endblock %}
+
+{% set library_image = url_for('static', filename='library.jpg.jpeg') %}
+{% set lab_image = url_for('static', filename='lab.jpeg') %}
+
+{% block content %}
+<section class="page-hero">
+	<div class="container">
+		<div class="section-heading centered reveal-up">
+			<span class="eyebrow">Library</span>
+			<h1>Knowledge Hub for Every Learner at Subhash Academy</h1>
+			<p>Our library supports BCA, PGDCA and DCA students with quality books, journals, previous year papers, digital references and a quiet reading environment.</p>
+		</div>
+	</div>
+</section>
+
+<section class="section-space pt-0">
+	<div class="container">
+		<div class="panel-card reveal-up">
+			<img
+				src="{{ library_image }}"
+				alt="Subhash Academy Library"
+				class="img-fluid rounded-4"
+				style="width: 100%; max-height: 420px; object-fit: cover;"
+			>
+		</div>
+	</div>
+</section>
+
+<section class="section-space pt-0">
+	<div class="container">
+		<div class="feature-grid">
+			<article class="feature-card reveal-up">
+				<h3>Academic Collection</h3>
+				<p>Topic-wise collection for programming, databases, networking, office tools, communication skills and competitive exam preparation.</p>
+			</article>
+			<article class="feature-card reveal-up delay-1">
+				<h3>Reference Material</h3>
+				<p>University syllabus books, practical manuals, project guidance material and previous year papers for exam-focused preparation.</p>
+			</article>
+			<article class="feature-card reveal-up delay-2">
+				<h3>Reading Zone</h3>
+				<p>Calm study space with guided support from faculty for doubt-solving, revision planning and productive self-study sessions.</p>
+			</article>
+		</div>
+	</div>
+</section>
+
+<section class="section-space pt-0">
+	<div class="container">
+		<div class="split-panel reveal-up">
+			<div>
+				<span class="eyebrow">Computer Lab</span>
+				<h2>Practical learning with modern systems</h2>
+				<p>Our lab is designed for hands-on practice in programming, database management, office tools, and project development. Students get regular practical sessions with faculty guidance.</p>
+				<ul class="simple-list" style="margin-bottom: 0;">
+					<li>High-performance computers for coding and software practice</li>
+					<li>Internet-enabled systems for research and e-learning</li>
+					<li>Lab support for BCA, PGDCA and DCA practical curriculum</li>
+					<li>Project and presentation preparation support</li>
+				</ul>
+			</div>
+			<div>
+				<img
+					src="{{ lab_image }}"
+					alt="Subhash Academy Computer Lab"
+					class="img-fluid rounded-4"
+					style="width: 100%; max-height: 360px; object-fit: cover;"
+				>
+			</div>
+		</div>
+	</div>
+</section>
+
+<section class="section-space pt-0">
+	<div class="container">
+		<div class="feature-grid">
+			<article class="feature-card reveal-up">
+				<h3>Library Timings</h3>
+				<p>Monday to Saturday: 9:00 AM to 4:30 PM. During exams, reading room support is extended as per the college notice.</p>
+			</article>
+			<article class="feature-card reveal-up delay-1">
+				<h3>Issue and Return</h3>
+				<p>Students can issue books with valid ID card. Standard issue period is 7 days and can be renewed if the book is available.</p>
+			</article>
+			<article class="feature-card reveal-up delay-2">
+				<h3>Digital Support</h3>
+				<p>E-notes, question banks, and practical references are provided for BCA, PGDCA and DCA students through guided faculty support.</p>
+			</article>
+		</div>
+	</div>
+</section>
+
+<section class="section-space section-surface">
+	<div class="container">
+		<div class="split-panel reveal-up">
+			<div>
+				<span class="eyebrow">Library Facilities</span>
+				<h2>Resources that help students perform better</h2>
+			</div>
+			<ul class="simple-list" style="margin: 0;">
+				<li>Updated semester-wise technical books for all courses</li>
+				<li>Career guidance books and interview preparation material</li>
+				<li>Daily newspaper and magazine corner for current affairs</li>
+				<li>Faculty-recommended reading lists for each semester</li>
+				<li>Support for project reports, assignments and presentations</li>
+			</ul>
+		</div>
+	</div>
+</section>
+
+<section class="section-space pt-0">
+	<div class="container">
+		<div class="panel-card reveal-up">
+			<span class="eyebrow">Library Rules</span>
+			<h2>Simple guidelines for a better study environment</h2>
+			<ul class="simple-list" style="margin-bottom: 0;">
+				<li>Maintain silence inside the reading area.</li>
+				<li>Handle books and journals carefully; avoid marking pages.</li>
+				<li>Carry student ID card while issuing or returning books.</li>
+				<li>Return books on time to avoid delay penalties.</li>
+				<li>Keep mobile phones on silent mode inside the library.</li>
+			</ul>
+		</div>
+	</div>
+</section>
+
+<section class="section-space pt-0">
+	<div class="container">
+		<div class="panel-card reveal-up incharge-highlight">
+			<span class="eyebrow">Lab &amp; Library Incharge</span>
+			<h2>Kajal Dubey</h2>
+			<span class="tag-chip">Primary Contact</span>
+			<ul class="simple-list" style="margin-bottom: 0;">
+				<li>Role: Lab Incharge</li>
+				<li>Qualification: MCA</li>
+				<li>Experience: 5 years</li>
+			</ul>
+		</div>
+	</div>
+</section>
+
+<section class="section-space">
+	<div class="container">
+		<div class="panel-card reveal-up">
+			<span class="eyebrow">Visit Library</span>
+			<h2>Need help finding a book?</h2>
+			<p>Contact the college office for library timing, access process, and borrowing guidance. Students can also reach us through the admission desk for more details.</p>
+			<p><strong>Contact Library Desk:</strong> 7991271812</p>
+			<a href="/contact" class="btn btn-accent">Contact Library Desk</a>
+		</div>
+	</div>
+</section>
+{% endblock %}
