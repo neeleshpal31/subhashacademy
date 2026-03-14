@@ -16,37 +16,46 @@
 <section class="section-space pt-0">
 	<div class="container">
 		<div class="gallery-grid">
-			<article class="gallery-tile reveal-up">
+			<article class="gallery-tile reveal-up" data-title="Computer Labs" data-desc="Modern, well-equipped computer labs where students get hands-on experience with real-world software and programming tools." onclick="openLightbox(this)">
 				<span>01</span>
 				<h3>Computer Labs</h3>
-				<p>Modern, well-equipped computer labs where students get hands-on experience with real-world software and programming tools.</p>
+				<p>Modern, well-equipped labs for hands-on programming and software training.</p>
 			</article>
-			<article class="gallery-tile reveal-up delay-1">
+			<article class="gallery-tile reveal-up delay-1" data-title="Classroom Sessions" data-desc="Interactive classroom teaching by our expert faculty, focusing on concept clarity, regular practice, and practical problem-solving." onclick="openLightbox(this)">
 				<span>02</span>
 				<h3>Classroom Sessions</h3>
-				<p>Interactive classroom teaching by our expert faculty, focusing on concept clarity, regular practice, and practical problem-solving.</p>
+				<p>Expert-led sessions focused on concept clarity and practical skills.</p>
 			</article>
-			<article class="gallery-tile reveal-up delay-2">
+			<article class="gallery-tile reveal-up delay-2" data-title="Cultural &amp; Farewell Events" data-desc="Annual farewell ceremonies and cultural programs that celebrate student achievements and build lasting bonds between students and faculty." onclick="openLightbox(this)">
 				<span>03</span>
 				<h3>Cultural &amp; Farewell Events</h3>
-				<p>Annual farewell ceremonies and cultural programs that celebrate student achievements and build lasting bonds between students and faculty.</p>
+				<p>Annual events celebrating student achievements and milestones.</p>
 			</article>
-			<article class="gallery-tile reveal-up">
+			<article class="gallery-tile reveal-up" data-title="National Occasions" data-desc="Republic Day, Independence Day and other national celebrations are observed with great enthusiasm and patriotic spirit on campus." onclick="openLightbox(this)">
 				<span>04</span>
 				<h3>National Occasions</h3>
-				<p>Republic Day, Independence Day and other national celebrations are observed with great enthusiasm and patriotic spirit on campus.</p>
+				<p>Republic Day, Independence Day celebrated with great enthusiasm.</p>
 			</article>
-			<article class="gallery-tile reveal-up delay-1">
+			<article class="gallery-tile reveal-up delay-1" data-title="Parent–Teacher Meets" data-desc="Regular Parent–Teacher meetings keep families informed about student progress, internal marks, and academic milestones." onclick="openLightbox(this)">
 				<span>05</span>
 				<h3>Parent–Teacher Meets</h3>
-				<p>Regular Parent–Teacher meetings keep families informed about student progress, internal marks, and academic milestones.</p>
+				<p>Regular meetings to keep families informed about student progress.</p>
 			</article>
-			<article class="gallery-tile reveal-up delay-2">
+			<article class="gallery-tile reveal-up delay-2" data-title="Campus &amp; Infrastructure" data-desc="Our Awas Vikas Colony campus provides a focused, disciplined learning environment with the facilities needed to excel in professional education." onclick="openLightbox(this)">
 				<span>06</span>
 				<h3>Campus &amp; Infrastructure</h3>
-				<p>Our Awas Vikas Colony campus provides a focused, disciplined learning environment with the facilities needed to excel in professional education.</p>
+				<p>Disciplined learning environment at Awas Vikas Colony, Chhibramau.</p>
 			</article>
 		</div>
 	</div>
 </section>
+
+<!-- Lightbox Modal -->
+<div class="lb-overlay" id="lbOverlay" onclick="closeLightbox(event)">
+	<div class="lb-box">
+		<button class="lb-close" onclick="closeLightbox()" aria-label="Close">&times;</button>
+		<h3 class="lb-title" id="lbTitle"></h3>
+		<p class="lb-body" id="lbBody"></p>
+	</div>
+</div>
 {% endblock %}

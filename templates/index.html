@@ -6,43 +6,99 @@
 {% set aicte_logo = url_for('static', filename='AICTE LOGO.png', v='20260313a') %}
 
 {% block content %}
-<section class="hero-section college-hero-bg" style="background-image: linear-gradient(120deg, rgba(12, 35, 56, 0.76), rgba(12, 35, 56, 0.46)), url('{{ college_bg }}');">
+<!-- Hero Slider -->
+<div id="heroSlider" class="carousel slide carousel-fade hero-slider" data-bs-ride="carousel" data-bs-interval="5000">
+	<div class="carousel-indicators">
+		<button type="button" data-bs-target="#heroSlider" data-bs-slide-to="0" class="active" aria-current="true"></button>
+		<button type="button" data-bs-target="#heroSlider" data-bs-slide-to="1"></button>
+		<button type="button" data-bs-target="#heroSlider" data-bs-slide-to="2"></button>
+	</div>
+	<div class="carousel-inner hero-slider-inner">
+		<div class="carousel-item active">
+			<div class="hero-section college-hero-bg" style="background-image: linear-gradient(120deg, rgba(10, 38, 71, 0.82), rgba(10, 38, 71, 0.52)), url('{{ college_bg }}');">
+				<div class="container">
+					<div class="hero-slide-content text-white text-center reveal-up">
+						<span class="eyebrow admissions-highlight">Admissions Open 2026</span>
+						<h1 class="mt-3">Excellence in IT &amp; Management Education Since 1998</h1>
+						<p class="lead">AICTE Approved · MCU Bhopal Affiliated · Chhibramau, Kannauj</p>
+						<a href="/admission" class="btn btn-accent btn-lg me-2 mt-3">Apply Now</a>
+						<a href="/courses" class="btn btn-outline-light btn-lg mt-3">Explore Courses</a>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="carousel-item">
+			<div class="hero-section college-hero-bg" style="background-image: linear-gradient(120deg, rgba(10, 38, 71, 0.78), rgba(44, 116, 179, 0.6)), url('{{ college_bg }}');">
+				<div class="container">
+					<div class="hero-slide-content text-white text-center reveal-up">
+						<span class="eyebrow admissions-highlight">3 Professional Programs</span>
+						<h1 class="mt-3">BCA &middot; PGDCA &middot; DCA</h1>
+						<p class="lead">Government scholarship benefits available · Limited seats · 2026 session</p>
+						<a href="/courses" class="btn btn-accent btn-lg me-2 mt-3">View All Courses</a>
+						<a href="/admission" class="btn btn-outline-light btn-lg mt-3">Admission Form</a>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="carousel-item">
+			<div class="hero-section college-hero-bg" style="background-image: linear-gradient(120deg, rgba(20, 66, 114, 0.82), rgba(10, 38, 71, 0.6)), url('{{ college_bg }}');">
+				<div class="container">
+					<div class="hero-slide-content text-white text-center reveal-up">
+						<span class="eyebrow admissions-highlight">Campus Facilities</span>
+						<h1 class="mt-3">Modern Labs &middot; Library &middot; Expert Faculty</h1>
+						<p class="lead">A disciplined learning environment for ambitious students in Kannauj region</p>
+						<a href="/library" class="btn btn-accent btn-lg me-2 mt-3">View Library &amp; Lab</a>
+						<a href="/about" class="btn btn-outline-light btn-lg mt-3">About Us</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<button class="carousel-control-prev" type="button" data-bs-target="#heroSlider" data-bs-slide="prev">
+		<span class="carousel-control-prev-icon" aria-hidden="true"></span>
+		<span class="visually-hidden">Previous</span>
+	</button>
+	<button class="carousel-control-next" type="button" data-bs-target="#heroSlider" data-bs-slide="next">
+		<span class="carousel-control-next-icon" aria-hidden="true"></span>
+		<span class="visually-hidden">Next</span>
+	</button>
+</div>
+
+<!-- Stats bar -->
+<div class="hero-stats-bar">
 	<div class="container">
-		<div class="hero-grid">
-			<div class="hero-copy reveal-up">
-				<span class="eyebrow admissions-highlight">Admissions Open 2026</span>
-				<h1>Empowering Students with Quality IT &amp; Management Education Since 1998.</h1>
-				<p>Subhash Academy — AICTE Approved College of IT &amp; Management, Chhibramau, Kannauj. Affiliated to Makhanlal Chaturvedi National University, Bhopal. Join BCA, PGDCA, DCA and selected distance mode courses to build a strong career path.</p>
-				<div class="hero-actions">
-					<a href="/admission" class="btn btn-accent btn-lg">Apply Now</a>
-					<a href="/courses" class="btn btn-outline-light btn-lg hero-secondary">Explore Courses</a>
-				</div>
-				<div class="hero-metrics">
-					<div>
-						<strong>25+</strong>
-						<span>Years of academic excellence</span>
-					</div>
-					<div>
-						<strong>3</strong>
-						<span>Professional programs offered</span>
-					</div>
-					<div>
-						<strong>AICTE</strong>
-						<span>Approved institution</span>
-					</div>
-				</div>
-			</div>
-			<div class="hero-panel reveal-up delay-1">
-				<div class="hero-card glass-card">
-					<p class="hero-card-label">Admission Highlights</p>
-					<h2>One of the most trusted IT colleges in Kannauj &amp; Farrukhabad — join for 2026.</h2>
-					<ul class="hero-points">
-						<li>AICTE Approved — ID: 1-44512605107</li>
-						<li>MCU Bhopal affiliated programs</li>
-						<li>Government scholarship benefits available</li>
-					</ul>
-				</div>
-			</div>
+		<div class="hero-stats-inner">
+			<div class="hero-stat-item"><strong>25+</strong><span>Years of Excellence</span></div>
+			<div class="hero-stat-item"><strong>3</strong><span>Professional Programs</span></div>
+			<div class="hero-stat-item"><strong>AICTE</strong><span>Approved Institution</span></div>
+			<div class="hero-stat-item"><strong>MCU</strong><span>University Affiliated</span></div>
+		</div>
+	</div>
+</div>
+
+<!-- Events Section -->
+<section class="section-space">
+	<div class="container">
+		<div class="section-heading centered reveal-up">
+			<span class="eyebrow">Upcoming Events</span>
+			<h2>Stay connected with campus life</h2>
+		</div>
+		<div class="events-grid">
+			<article class="event-card reveal-up">
+				<span class="event-date-badge">&#128197; 25 March 2026</span>
+				<h3>BCA Practical Examinations</h3>
+				<p>Practical exams for all BCA semesters begin. Students must carry their admit cards and report on time.</p>
+			</article>
+			<article class="event-card reveal-up delay-1">
+				<span class="event-date-badge">&#128197; 10 April 2026</span>
+				<h3>Annual Cultural Fest 2026</h3>
+				<p>Annual cultural program celebrating student talents in music, dance, and academic achievements across all programs.</p>
+			</article>
+			<article class="event-card reveal-up delay-2">
+				<span class="event-date-badge">&#128197; 30 April 2026</span>
+				<h3>Admission Last Date &mdash; 2026</h3>
+				<p>Final date to submit admission forms for BCA, PGDCA and DCA programs. Contact the office immediately to secure your seat.</p>
+			</article>
 		</div>
 	</div>
 </section>
