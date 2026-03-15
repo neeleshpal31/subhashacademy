@@ -83,4 +83,43 @@ for admin_id, stored_password in admin_rows:
 
 db.commit()
 
+
+# Initialize database with default data if empty on Render
+def _initialize_default_data():
+    cursor.execute("SELECT COUNT(*) FROM admissions;")
+    admission_count = cursor.fetchone()[0]
+    
+    if admission_count == 0:
+        # Check if database initialization file exists
+        init_script_path = os.path.join(os.path.dirname(__file__), "database_init.sql")
+        if os.path.exists(init_script_path):
+            with open(init_script_path, 'r') as f:
+                sql_lines = f.readlines()
+                sql_statement = ""
+                for line in sql_lines:
+                    line = line.strip()
+                    if line and not line.startswith("--"):
+                        sql_statement += line
+                        if line.endswith(";"):
+                            try:
+                                cursor.execute(sql_statement)
+                                sql_statement = ""
+                            except Exception as e:
+                                print(f"Error executing SQL: {e}")
+                                sql_statement = ""
+            db.commit()
+        else:
+            # If init file doesn't exist, create sample data
+            cursor.execute(
+                "INSERT INTO admissions (name, email, phone, course, message) VALUES (?, ?, ?, ?, ?)",
+                ('Sample Student', 'sample@example.com', '9999999999', 'BCA', 'Sample admission entry'),
+            )
+            cursor.execute(
+                "INSERT INTO gallery_images (title, description, filename, category) VALUES (?, ?, ?, ?)",
+                ('Campus', 'College Campus', 'campus.jpg', 'campus_infrastructure'),
+            )
+            db.commit()
+
+_initialize_default_data()
+
 print("SQLite Database Connected Successfully")
