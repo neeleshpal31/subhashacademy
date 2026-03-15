@@ -262,13 +262,8 @@ if ("IntersectionObserver" in window) {
 		});
 	}, observerOptions);
 
-	// Observe all counter elements
-	document.querySelectorAll(".stat-counter, .stat-number").forEach((el) => {
-		counterObserver.observe(el);
-	});
-
-	// Also observe other animated elements
-	document.querySelectorAll("[data-aos]").forEach((el) => {
+	// Observe all counter elements - ONLY those with data-target attribute
+	document.querySelectorAll(".stat-counter[data-target], .stat-number[data-target]").forEach((el) => {
 		counterObserver.observe(el);
 	});
 }
