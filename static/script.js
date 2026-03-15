@@ -225,6 +225,11 @@ document.addEventListener("keydown", function (e) {
 
 // Counter Animation for Statistics
 function animateCounter(element, target) {
+	if (!target || isNaN(target)) {
+		element.textContent = target || '0';
+		return;
+	}
+	
 	let current = 0;
 	const increment = target / 60; // Over ~1 second
 	
@@ -234,7 +239,7 @@ function animateCounter(element, target) {
 			element.textContent = Math.floor(current);
 			requestAnimationFrame(updateCount);
 		} else {
-			element.textContent = target;
+			element.textContent = Math.floor(target);
 		}
 	};
 	
@@ -258,7 +263,7 @@ if ("IntersectionObserver" in window) {
 	}, observerOptions);
 
 	// Observe all counter elements
-	document.querySelectorAll(".stat-counter").forEach((el) => {
+	document.querySelectorAll(".stat-counter, .stat-number").forEach((el) => {
 		counterObserver.observe(el);
 	});
 
