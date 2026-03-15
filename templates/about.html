@@ -5,7 +5,7 @@
 {% set college_logo = url_for('static', filename='logo.jpg') %}
 {% set fallback_logo = url_for('static', filename='logo.jpg') %}
 {% set director_img = url_for('static', filename='director sir.jpeg') %}
-{% set director_jpeg = url_for('static', filename='director.jpeg') + '?v=20260315m' %}
+{% set director_jpeg = url_for('static', filename='director.jpeg') + '?v=20260315fixed' %}
 {% set khan_img = url_for('static', filename='khan sir.jpeg', v='20260315e') %}
 {% set mahabub_img = url_for('static', filename='mahabub sir.jpeg', v='20260315e') %}
 {% set mayank_img = url_for('static', filename='mayank sir.jpeg', v='20260315e') %}
@@ -144,7 +144,6 @@
 </section>
 
 <section class="section-space">
-	<div class="container">
 		<div class="split-panel reveal-up incharge-highlight" style="margin-bottom: 1.5rem;">
 			<div>
 				<span class="eyebrow">Director's Message</span>
@@ -152,12 +151,16 @@
 				<p>Our aim is to provide quality education with practical learning, discipline, and strong career support. We are committed to building confident and skilled professionals through experienced faculty, modern labs, and student-centered guidance.</p>
 				<p><strong>Devesh Kumar Saxena</strong><br>Director, Subhash Academy</p>
 			</div>
-			<div class="panel-card" style="margin: 0; width: 100%; max-width: 360px;">
-				<p style="margin: 0; font-style: italic; color: var(--navy); font-size: 1.05rem; line-height: 1.8;">"We are building confident, skilled, and career-ready professionals through disciplined learning and practical education."</p>
+			<div class="panel-card" style="margin: 0; width: 100%; max-width: 360px; position: relative; min-height: 280px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 14px;">
+				<img 
+					src="{{ director_jpeg }}" 
+					alt="Director" 
+					style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 14px;"
+					loading="lazy"
+				>
+				<p style="margin: 0; font-style: italic; color: var(--navy); font-size: 1.05rem; line-height: 1.8; position: relative; z-index: 10; background: rgba(255,255,255,0.92); padding: 1.5rem; border-radius: 10px; text-align: center; backdrop-filter: blur(4px);">"We are building confident, skilled, and career-ready professionals through disciplined learning and practical education."</p>
 			</div>
 		</div>
-
-		<div class="split-panel reveal-up">
 			<div>
 				<span class="eyebrow">Admissions Contact</span>
 				<h2>Enroll Now</h2>
