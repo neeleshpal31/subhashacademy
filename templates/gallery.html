@@ -15,33 +15,51 @@
 
 <section class="section-space pt-0">
 	<div class="container">
+		{% if gallery_images %}
+		<div class="section-heading reveal-up">
+			<span class="eyebrow">Latest Uploads</span>
+			<h2>Admin Managed Gallery</h2>
+		</div>
+		<div class="uploaded-gallery-grid mb-5">
+			{% for img in gallery_images %}
+			<article class="uploaded-gallery-card reveal-up" data-title="{{ img[1] or 'Campus Activity' }}" data-desc="{{ img[2] or 'Subhash Academy Campus Moment' }}" data-image="{{ url_for('static', filename='uploads/gallery/' ~ img[3]) }}" onclick="openLightbox(this)">
+				<img src="{{ url_for('static', filename='uploads/gallery/' ~ img[3]) }}" alt="{{ img[1] or 'Campus Gallery Image' }}" loading="lazy">
+				<div class="uploaded-gallery-card__body">
+					<h3>{{ img[1] or 'Campus Activity' }}</h3>
+					<p>{{ img[2] or 'Subhash Academy Campus Moment' }}</p>
+				</div>
+			</article>
+			{% endfor %}
+		</div>
+		{% endif %}
+
 		<div class="gallery-grid">
-			<article class="gallery-tile reveal-up" data-title="Computer Labs" data-desc="Modern, well-equipped computer labs where students get hands-on experience with real-world software and programming tools." onclick="openLightbox(this)">
+			<article class="gallery-tile reveal-up" data-title="Computer Labs" data-desc="Modern, well-equipped computer labs where students get hands-on experience with real-world software and programming tools." data-images="{{ category_images['computer_labs'] | join('|') }}" onclick="openLightbox(this)">
 				<span>01</span>
 				<h3>Computer Labs</h3>
 				<p>Modern, well-equipped labs for hands-on programming and software training.</p>
 			</article>
-			<article class="gallery-tile reveal-up delay-1" data-title="Classroom Sessions" data-desc="Interactive classroom teaching by our expert faculty, focusing on concept clarity, regular practice, and practical problem-solving." onclick="openLightbox(this)">
+			<article class="gallery-tile reveal-up delay-1" data-title="Classroom Sessions" data-desc="Interactive classroom teaching by our expert faculty, focusing on concept clarity, regular practice, and practical problem-solving." data-images="{{ category_images['classroom_sessions'] | join('|') }}" onclick="openLightbox(this)">
 				<span>02</span>
 				<h3>Classroom Sessions</h3>
 				<p>Expert-led sessions focused on concept clarity and practical skills.</p>
 			</article>
-			<article class="gallery-tile reveal-up delay-2" data-title="Cultural &amp; Farewell Events" data-desc="Annual farewell ceremonies and cultural programs that celebrate student achievements and build lasting bonds between students and faculty." onclick="openLightbox(this)">
+			<article class="gallery-tile reveal-up delay-2" data-title="Cultural &amp; Farewell Events" data-desc="Annual farewell ceremonies and cultural programs that celebrate student achievements and build lasting bonds between students and faculty." data-images="{{ category_images['cultural_events'] | join('|') }}" onclick="openLightbox(this)">
 				<span>03</span>
 				<h3>Cultural &amp; Farewell Events</h3>
 				<p>Annual events celebrating student achievements and milestones.</p>
 			</article>
-			<article class="gallery-tile reveal-up" data-title="National Occasions" data-desc="Republic Day, Independence Day and other national celebrations are observed with great enthusiasm and patriotic spirit on campus." onclick="openLightbox(this)">
+			<article class="gallery-tile reveal-up" data-title="National Occasions" data-desc="Republic Day, Independence Day and other national celebrations are observed with great enthusiasm and patriotic spirit on campus." data-images="{{ category_images['national_occasions'] | join('|') }}" onclick="openLightbox(this)">
 				<span>04</span>
 				<h3>National Occasions</h3>
 				<p>Republic Day, Independence Day celebrated with great enthusiasm.</p>
 			</article>
-			<article class="gallery-tile reveal-up delay-1" data-title="Parent–Teacher Meets" data-desc="Regular Parent–Teacher meetings keep families informed about student progress, internal marks, and academic milestones." onclick="openLightbox(this)">
+			<article class="gallery-tile reveal-up delay-1" data-title="Parent–Teacher Meets" data-desc="Regular Parent–Teacher meetings keep families informed about student progress, internal marks, and academic milestones." data-images="{{ category_images['parent_teacher_meets'] | join('|') }}" onclick="openLightbox(this)">
 				<span>05</span>
 				<h3>Parent–Teacher Meets</h3>
 				<p>Regular meetings to keep families informed about student progress.</p>
 			</article>
-			<article class="gallery-tile reveal-up delay-2" data-title="Campus &amp; Infrastructure" data-desc="Our Awas Vikas Colony campus provides a focused, disciplined learning environment with the facilities needed to excel in professional education." onclick="openLightbox(this)">
+			<article class="gallery-tile reveal-up delay-2" data-title="Campus &amp; Infrastructure" data-desc="Our Awas Vikas Colony campus provides a focused, disciplined learning environment with the facilities needed to excel in professional education." data-images="{{ category_images['campus_infrastructure'] | join('|') }}" onclick="openLightbox(this)">
 				<span>06</span>
 				<h3>Campus &amp; Infrastructure</h3>
 				<p>Disciplined learning environment at Awas Vikas Colony, Chhibramau.</p>
@@ -54,6 +72,12 @@
 <div class="lb-overlay" id="lbOverlay" onclick="closeLightbox(event)">
 	<div class="lb-box">
 		<button class="lb-close" onclick="closeLightbox()" aria-label="Close">&times;</button>
+		<div class="lb-toolbar" id="lbToolbar">
+			<button class="lb-nav" id="lbPrev" onclick="showPrevImage(event)" aria-label="Previous image">&#10094;</button>
+			<span class="lb-counter" id="lbCounter">1 / 1</span>
+			<button class="lb-nav" id="lbNext" onclick="showNextImage(event)" aria-label="Next image">&#10095;</button>
+		</div>
+		<img class="lb-image" id="lbImage" alt="Gallery preview">
 		<h3 class="lb-title" id="lbTitle"></h3>
 		<p class="lb-body" id="lbBody"></p>
 	</div>

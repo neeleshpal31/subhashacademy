@@ -16,6 +16,64 @@
 
 <section class="section-space pt-0">
     <div class="container reveal-up">
+        {% if message %}
+        <div class="admin-success">{{ message }}</div>
+        {% endif %}
+        {% if error %}
+        <div class="admin-alert">{{ error }}</div>
+        {% endif %}
+
+        <div class="panel-card mb-4">
+            <h2 class="h4 mb-3">Manage Website Gallery Images</h2>
+            <form action="/admin/gallery/upload" method="post" enctype="multipart/form-data" class="styled-form">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Gallery Category</label>
+                        <select name="category" class="form-select" required>
+                            <option value="">Select category</option>
+                            {% for key, label in gallery_categories %}
+                            <option value="{{ key }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Title (optional)</label>
+                        <input type="text" name="title" class="form-control" placeholder="e.g. Annual Function 2026">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Description (optional)</label>
+                        <input type="text" name="description" class="form-control" placeholder="Short description">
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Image File</label>
+                        <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png,.webp" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">Upload Image</button>
+            </form>
+        </div>
+
+        <div class="panel-card mb-4">
+            <h2 class="h4 mb-3">Uploaded Gallery Images</h2>
+            <div class="admin-gallery-grid">
+                {% for img in gallery_images %}
+                <article class="admin-gallery-item">
+                    <img src="{{ url_for('static', filename='uploads/gallery/' ~ img[3]) }}" alt="{{ img[1] or 'Gallery Image' }}">
+                    <div class="admin-gallery-meta">
+                        <strong>{{ img[1] or 'Untitled' }}</strong>
+                        <span class="admin-category-chip">{{ category_labels.get(img[4], 'Uncategorized') }}</span>
+                        <p class="mb-2">{{ img[2] or 'No description' }}</p>
+                        <form action="/admin/gallery/delete/{{ img[0] }}" method="post">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    </div>
+                </article>
+                {% else %}
+                <p class="text-muted mb-0">No images uploaded yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
         <div class="panel-card table-panel">
             <div class="table-responsive">
                 <table class="table align-middle dashboard-table mb-0">

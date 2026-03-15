@@ -33,6 +33,33 @@ cursor.execute(
     """
 )
 
+cursor.execute(
+    """
+    CREATE TABLE IF NOT EXISTS gallery_images (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        description TEXT,
+        filename TEXT NOT NULL,
+        category TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    """
+)
+
+cursor.execute("PRAGMA table_info(gallery_images)")
+gallery_columns = [row[1] for row in cursor.fetchall()]
+
+if "category" not in gallery_columns:
+    cursor.execute("ALTER TABLE gallery_images ADD COLUMN category TEXT")
+
+cursor.execute(
+    """
+    UPDATE gallery_images
+    SET category = 'campus_infrastructure'
+    WHERE category IS NULL OR TRIM(category) = ''
+    """
+)
+
 cursor.execute("SELECT COUNT(*) FROM admin")
 admin_count = cursor.fetchone()[0]
 

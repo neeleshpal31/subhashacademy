@@ -1,7 +1,9 @@
 import os
+from uuid import uuid4
 
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, url_for
 from werkzeug.security import check_password_hash
+from werkzeug.utils import secure_filename
 from config import db, cursor
 
 app = Flask(__name__)
@@ -11,6 +13,27 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=os.getenv("FLASK_SECURE_COOKIE", "0") == "1",
 )
+
+ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+GALLERY_UPLOAD_DIR = os.path.join(app.static_folder, "uploads", "gallery")
+GALLERY_CATEGORIES = [
+    ("computer_labs", "Computer Labs"),
+    ("classroom_sessions", "Classroom Sessions"),
+    ("cultural_events", "Cultural & Farewell Events"),
+    ("national_occasions", "National Occasions"),
+    ("parent_teacher_meets", "Parent-Teacher Meets"),
+    ("campus_infrastructure", "Campus & Infrastructure"),
+]
+GALLERY_CATEGORY_LABELS = dict(GALLERY_CATEGORIES)
+
+
+def _is_admin_logged_in():
+    return "admin_id" in session
+
+
+def _is_allowed_image(filename):
+    ext = os.path.splitext(filename)[1].lower()
+    return ext in ALLOWED_IMAGE_EXTENSIONS
 
 # Home
 @app.route("/")
@@ -37,10 +60,70 @@ def courses():
 def library():
     return render_template("library.html", active_page="library")
 
+# Faculty & Staff
+@app.route("/faculty")
+def faculty():
+    return render_template("faculty.html", active_page="faculty")
+
 # Gallery
 @app.route("/gallery")
 def gallery():
-    return render_template("gallery.html", active_page="gallery")
+    default_category_images = {
+        "computer_labs": [
+            url_for("static", filename="lab.jpeg"),
+            url_for("static", filename="college-bg.jpg"),
+            url_for("static", filename="library.jpg.jpeg"),
+        ],
+        "classroom_sessions": [
+            url_for("static", filename="college-bg.jpg"),
+            url_for("static", filename="lab.jpeg"),
+            url_for("static", filename="director sir.jpeg"),
+        ],
+        "cultural_events": [
+            url_for("static", filename="uploads/gallery/a9edcdcda31144d59248349cc8ef819f.jpg"),
+            url_for("static", filename="college-bg.jpg"),
+            url_for("static", filename="director.jpeg"),
+        ],
+        "national_occasions": [
+            url_for("static", filename="college-bg.jpg"),
+            url_for("static", filename="logo.jpg"),
+            url_for("static", filename="AICTE LOGO.png"),
+        ],
+        "parent_teacher_meets": [
+            url_for("static", filename="director sir.jpeg"),
+            url_for("static", filename="khan sir.jpeg"),
+            url_for("static", filename="mayank sir.jpeg"),
+        ],
+        "campus_infrastructure": [
+            url_for("static", filename="college-bg.jpg"),
+            url_for("static", filename="library.jpg.jpeg"),
+            url_for("static", filename="lab.jpeg"),
+        ],
+    }
+
+    category_images = {k: list(v) for k, v in default_category_images.items()}
+
+    cursor.execute(
+        """
+        SELECT id, title, description, filename, category
+        FROM gallery_images
+        ORDER BY id DESC
+        """
+    )
+    gallery_images = cursor.fetchall()
+
+    for row in gallery_images:
+        category = row[4] or ""
+        if category in category_images:
+            image_url = url_for("static", filename=f"uploads/gallery/{row[3]}")
+            category_images[category].insert(0, image_url)
+
+    return render_template(
+        "gallery.html",
+        active_page="gallery",
+        gallery_images=gallery_images,
+        category_images=category_images,
+    )
 
 # Contact
 @app.route("/contact")
@@ -113,14 +196,96 @@ def adminlogin():
 @app.route("/dashboard")
 def dashboard():
 
-    if "admin_id" not in session:
+    if not _is_admin_logged_in():
         return redirect("/admin")
 
     cursor.execute("SELECT * FROM admissions")
 
     data = cursor.fetchall()
 
-    return render_template("dashboard.html", data=data, active_page="admin")
+    cursor.execute(
+        """
+        SELECT id, title, description, filename, category
+        FROM gallery_images
+        ORDER BY id DESC
+        """
+    )
+    gallery_images = cursor.fetchall()
+
+    message = request.args.get("msg", "")
+    error = request.args.get("err", "")
+
+    return render_template(
+        "dashboard.html",
+        data=data,
+        gallery_images=gallery_images,
+        gallery_categories=GALLERY_CATEGORIES,
+        category_labels=GALLERY_CATEGORY_LABELS,
+        message=message,
+        error=error,
+        active_page="admin",
+    )
+
+
+@app.route("/admin/gallery/upload", methods=["POST"])
+def upload_gallery_image():
+    if not _is_admin_logged_in():
+        return redirect("/admin")
+
+    image = request.files.get("image")
+    title = request.form.get("title", "").strip()
+    description = request.form.get("description", "").strip()
+    category = request.form.get("category", "").strip()
+
+    if category not in GALLERY_CATEGORY_LABELS:
+        return redirect(url_for("dashboard", err="Please choose a valid category."))
+
+    if not image or not image.filename:
+        return redirect(url_for("dashboard", err="Please choose an image file."))
+
+    if not _is_allowed_image(image.filename):
+        return redirect(url_for("dashboard", err="Only JPG, JPEG, PNG, WEBP files are allowed."))
+
+    original_name = secure_filename(image.filename)
+    ext = os.path.splitext(original_name)[1].lower()
+    stored_name = f"{uuid4().hex}{ext}"
+
+    os.makedirs(GALLERY_UPLOAD_DIR, exist_ok=True)
+    save_path = os.path.join(GALLERY_UPLOAD_DIR, stored_name)
+    image.save(save_path)
+
+    cursor.execute(
+        """
+        INSERT INTO gallery_images (title, description, filename, category)
+        VALUES (?, ?, ?, ?)
+        """,
+        (title, description, stored_name, category),
+    )
+    db.commit()
+
+    return redirect(url_for("dashboard", msg="Image uploaded successfully."))
+
+
+@app.route("/admin/gallery/delete/<int:image_id>", methods=["POST"])
+def delete_gallery_image(image_id):
+    if not _is_admin_logged_in():
+        return redirect("/admin")
+
+    cursor.execute("SELECT filename FROM gallery_images WHERE id=?", (image_id,))
+    row = cursor.fetchone()
+
+    if not row:
+        return redirect(url_for("dashboard", err="Image record not found."))
+
+    filename = row[0]
+    cursor.execute("DELETE FROM gallery_images WHERE id=?", (image_id,))
+    db.commit()
+
+    image_path = os.path.join(GALLERY_UPLOAD_DIR, filename)
+    if os.path.exists(image_path):
+        os.remove(image_path)
+
+    return redirect(url_for("dashboard", msg="Image deleted successfully."))
 
 
 @app.route("/logout")

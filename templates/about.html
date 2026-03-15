@@ -2,9 +2,12 @@
 
 {% block title %}About | Subhash Academy{% endblock %}
 
-{% set director_image = url_for('static', filename='director.jpeg', v='20260313a') %}
-{% set fallback_logo = url_for('static', filename='logo.jpg') %}
 {% set college_logo = url_for('static', filename='logo.jpg') %}
+{% set fallback_logo = url_for('static', filename='logo.jpg') %}
+{% set director_img = url_for('static', filename='director sir.jpeg', v='20260315e') %}
+{% set khan_img = url_for('static', filename='khan sir.jpeg', v='20260315e') %}
+{% set mahabub_img = url_for('static', filename='mahabub sir.jpeg', v='20260315e') %}
+{% set mayank_img = url_for('static', filename='mayank sir.jpeg', v='20260315e') %}
 
 {% block content %}
 <section class="page-hero">
@@ -50,6 +53,95 @@
 	</div>
 </section>
 
+<!-- Faculty & Staff Preview Section -->
+<section class="section-space">
+	<div class="container">
+		<div class="text-center mb-5 reveal-up">
+			<span class="eyebrow">Our People</span>
+			<h2>Faculty &amp; Staff</h2>
+			<p>Meet the experienced educators dedicated to shaping student success.</p>
+		</div>
+		<div class="faculty-grid about-faculty-grid reveal-up">
+			<div class="faculty-card faculty-card--featured">
+				<div class="faculty-card__img-wrap">
+					<img
+						src="{{ director_img }}"
+						alt="Devesh Kumar Saxena"
+						class="faculty-card__img"
+						onerror="this.onerror=null;this.src='{{ fallback_logo }}';"
+					>
+					<span class="faculty-card__badge">Director</span>
+				</div>
+				<div class="faculty-card__body">
+					<h3 class="faculty-card__name">Devesh Kumar Saxena</h3>
+					<p class="faculty-card__role">Director</p>
+					<div class="faculty-card__meta">
+						<span class="faculty-meta-tag">&#127891; MBA</span>
+						<span class="faculty-meta-tag">&#9201; 15 Yrs</span>
+					</div>
+				</div>
+			</div>
+			<div class="faculty-card">
+				<div class="faculty-card__img-wrap">
+					<img
+						src="{{ khan_img }}"
+						alt="Naseem Zama Khan"
+						class="faculty-card__img"
+						onerror="this.onerror=null;this.src='{{ fallback_logo }}';"
+					>
+				</div>
+				<div class="faculty-card__body">
+					<h3 class="faculty-card__name">Naseem Zama Khan</h3>
+					<p class="faculty-card__role">System Manager</p>
+					<div class="faculty-card__meta">
+						<span class="faculty-meta-tag">&#127891; M.Tech (IT)</span>
+						<span class="faculty-meta-tag">&#9201; 23 Yrs</span>
+					</div>
+				</div>
+			</div>
+			<div class="faculty-card">
+				<div class="faculty-card__img-wrap">
+					<img
+						src="{{ mahabub_img }}"
+						alt="Mahboob Siddiqui"
+						class="faculty-card__img"
+						onerror="this.onerror=null;this.src='{{ fallback_logo }}';"
+					>
+				</div>
+				<div class="faculty-card__body">
+					<h3 class="faculty-card__name">Mahboob Siddiqui</h3>
+					<p class="faculty-card__role">Head of Department</p>
+					<div class="faculty-card__meta">
+						<span class="faculty-meta-tag">&#127891; MCA</span>
+						<span class="faculty-meta-tag">&#9201; 18 Yrs</span>
+					</div>
+				</div>
+			</div>
+			<div class="faculty-card">
+				<div class="faculty-card__img-wrap">
+					<img
+						src="{{ mayank_img }}"
+						alt="Mayank Jeet Saxena"
+						class="faculty-card__img"
+						onerror="this.onerror=null;this.src='{{ fallback_logo }}';"
+					>
+				</div>
+				<div class="faculty-card__body">
+					<h3 class="faculty-card__name">Mayank Jeet Saxena</h3>
+					<p class="faculty-card__role">Office Admin</p>
+					<div class="faculty-card__meta">
+						<span class="faculty-meta-tag">&#127891; M.Sc (CS)</span>
+						<span class="faculty-meta-tag">&#9201; 24 Yrs</span>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="text-center mt-4 reveal-up">
+			<a href="/faculty" class="btn btn-accent btn-lg">View All Faculty &amp; Staff &rarr;</a>
+		</div>
+	</div>
+</section>
+
 <section class="section-space">
 	<div class="container">
 		<div class="split-panel reveal-up" style="margin-bottom: 1.5rem;">
@@ -59,14 +151,8 @@
 				<p>Our aim is to provide quality education with practical learning, discipline, and strong career support. We are committed to building confident and skilled professionals through experienced faculty, modern labs, and student-centered guidance.</p>
 				<p><strong>Devesh Kumar Saxena</strong><br>Director, Subhash Academy</p>
 			</div>
-			<div class="d-flex justify-content-center align-items-center">
-				<img
-					src="{{ director_image }}"
-					alt="Director, Subhash Academy"
-					class="img-fluid"
-					style="width: 240px; height: 240px; object-fit: cover; border-radius: 50%; border: 6px solid rgba(255, 179, 71, 0.8); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);"
-					onerror="this.onerror=null;this.src='{{ fallback_logo }}';"
-				>
+			<div class="panel-card" style="margin: 0; width: 100%; max-width: 360px;">
+				<p style="margin: 0; font-style: italic;">"We are building confident, skilled, and career-ready professionals through disciplined learning and practical education."</p>
 			</div>
 		</div>
 
