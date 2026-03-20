@@ -232,7 +232,7 @@ def upload_gallery_image():
     if not _is_admin_logged_in():
         return redirect("/admin")
 
-    image = request.files.get("image")
+    images = request.files.getlist("images")  # Get multiple files
     title = request.form.get("title", "").strip()
     description = request.form.get("description", "").strip()
     category = request.form.get("category", "").strip()
@@ -240,30 +240,43 @@ def upload_gallery_image():
     if category not in GALLERY_CATEGORY_LABELS:
         return redirect(url_for("dashboard", err="Please choose a valid category."))
 
-    if not image or not image.filename:
-        return redirect(url_for("dashboard", err="Please choose an image file."))
+    if not images or not images[0].filename:
+        return redirect(url_for("dashboard", err="Please choose at least one image file."))
 
-    if not _is_allowed_image(image.filename):
-        return redirect(url_for("dashboard", err="Only JPG, JPEG, PNG, WEBP files are allowed."))
+    uploaded_count = 0
+    for image in images:
+        if not image or not image.filename:
+            continue
 
-    original_name = secure_filename(image.filename)
-    ext = os.path.splitext(original_name)[1].lower()
-    stored_name = f"{uuid4().hex}{ext}"
+        if not _is_allowed_image(image.filename):
+            continue
 
-    os.makedirs(GALLERY_UPLOAD_DIR, exist_ok=True)
-    save_path = os.path.join(GALLERY_UPLOAD_DIR, stored_name)
-    image.save(save_path)
+        try:
+            original_name = secure_filename(image.filename)
+            ext = os.path.splitext(original_name)[1].lower()
+            stored_name = f"{uuid4().hex}{ext}"
 
-    cursor.execute(
-        """
-        INSERT INTO gallery_images (title, description, filename, category)
-        VALUES (?, ?, ?, ?)
-        """,
-        (title, description, stored_name, category),
-    )
-    db.commit()
+            os.makedirs(GALLERY_UPLOAD_DIR, exist_ok=True)
+            save_path = os.path.join(GALLERY_UPLOAD_DIR, stored_name)
+            image.save(save_path)
 
-    return redirect(url_for("dashboard", msg="Image uploaded successfully."))
+            cursor.execute(
+                """
+                INSERT INTO gallery_images (title, description, filename, category)
+                VALUES (?, ?, ?, ?)
+                """,
+                (title, description, stored_name, category),
+            )
+            db.commit()
+            uploaded_count += 1
+        except Exception:
+            continue
+
+    if uploaded_count == 0:
+        return redirect(url_for("dashboard", err="No valid image files uploaded."))
+    
+    msg = f"{uploaded_count} image(s) uploaded successfully." if uploaded_count > 1 else "1 image uploaded successfully."
+    return redirect(url_for("dashboard", msg=msg))
 
 
 @app.route("/admin/gallery/delete/<int:image_id>", methods=["POST"])
@@ -286,6 +299,23 @@ def delete_gallery_image(image_id):
         os.remove(image_path)
 
     return redirect(url_for("dashboard", msg="Image deleted successfully."))
+
+
+@app.route("/admin/admissions/delete/<int:admission_id>", methods=["POST"])
+def delete_admission(admission_id):
+    if not _is_admin_logged_in():
+        return redirect("/admin")
+
+    cursor.execute("SELECT id FROM admissions WHERE id=?", (admission_id,))
+    row = cursor.fetchone()
+
+    if not row:
+        return redirect(url_for("dashboard", err="Admission record not found."))
+
+    cursor.execute("DELETE FROM admissions WHERE id=?", (admission_id,))
+    db.commit()
+
+    return redirect(url_for("dashboard", msg="Admission record deleted successfully."))
 
 
 @app.route("/logout")

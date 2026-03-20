@@ -15,7 +15,7 @@
 </section>
 
 <section class="section-space pt-0">
-    <div class="container reveal-up">
+    <div class="container" style="opacity: 1; transform: translateY(0);">
         {% if message %}
         <div class="admin-success">{{ message }}</div>
         {% endif %}
@@ -45,8 +45,8 @@
                         <input type="text" name="description" class="form-control" placeholder="Short description">
                     </div>
                     <div class="col-md-12">
-                        <label class="form-label">Image File</label>
-                        <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png,.webp" required>
+                        <label class="form-label">Image Files (Multiple Select)</label>
+                        <input type="file" name="images" class="form-control" accept=".jpg,.jpeg,.png,.webp" multiple required>
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary mt-3">Upload Image</button>
@@ -85,6 +85,7 @@
                             <th>Phone</th>
                             <th>Course</th>
                             <th>Message</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -96,10 +97,17 @@
                             <td>{{ row[3] }}</td>
                             <td><span class="tag-chip">{{ row[4] }}</span></td>
                             <td>{{ row[5] }}</td>
+                            <td>
+                                <form action="/admin/admissions/delete/{{ row[0] }}" method="post" style="display:inline-block; margin:0;">
+                                    <button type="submit" class="btn btn-danger btn-sm" 
+                                            style="background-color: #dc3545; color: white; border: 2px solid #dc3545; padding: 8px 16px; font-weight: 700; cursor: pointer; border-radius: 6px; transition: all 0.3s ease;"
+                                            onclick="return confirm('Delete this admission record?');">Delete</button>
+                                </form>
+                            </td>
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">No admission records found yet.</td>
+                            <td colspan="7" class="text-center py-5 text-muted">No admission records found yet.</td>
                         </tr>
                         {% endfor %}
                     </tbody>

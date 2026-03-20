@@ -9,8 +9,7 @@
 
 <!-- =========== HERO SECTION =========== -->
 <section class="hero-modern">
-	<div class="hero-background" style="background-image: linear-gradient(135deg, rgba(10, 38, 71, 0.85) 0%, rgba(20, 66, 114, 0.75) 100%), url('{{ college_bg }}');">
-	</div>
+	<div class="hero-background" style="background-image: linear-gradient(135deg, rgba(10, 38, 71, 0.5) 0%, rgba(20, 66, 114, 0.4) 100%), url('{{ college_bg }}');"></div>
 	<div class="container hero-container">
 		<div class="hero-content">
 			<span class="hero-badge">✨ Admissions Open 2026</span>
@@ -66,10 +65,10 @@
 				<p class="program-duration">3 Years | ₹10,900/Semester</p>
 				<p class="program-desc">Master advanced programming, database management, and software development. Build expertise for careers in IT companies worldwide.</p>
 				<ul class="program-highlights">
-					<li>✓ Full-stack web development</li>
-					<li>✓ Database & SQL mastery</li>
-					<li>✓ Industry-ready projects</li>
-					<li>✓ Placement support</li>
+					<li> Full-stack web development</li>
+					<li> Database & SQL mastery</li>
+					<li> Industry-ready projects</li>
+					<li> Placement support</li>
 				</ul>
 				<a href="/courses" class="btn-read-more">Learn More →</a>
 			</div>
@@ -158,32 +157,34 @@
 
 		<div class="features-grid">
 			<div class="feature-card-modern" data-aos="fade-up">
-				<div class="feature-icon">✓</div>
+				<div class="feature-icon feature-icon-img">
+					<img src="{{ url_for('static', filename='AICTE LOGO.png') }}" alt="AICTE Logo" class="aicte-logo-img">
+				</div>
 				<h3>AICTE Approved</h3>
 				<p>All programs are officially approved by AICTE, ensuring nationally recognized credentials and industry acceptance worldwide.</p>
 			</div>
 			<div class="feature-card-modern" data-aos="fade-up" data-aos-delay="100">
-				<div class="feature-icon">✓</div>
+				<div class="feature-icon">🎓</div>
 				<h3>Expert Faculty</h3>
 				<p>Learn from experienced educators with advanced degrees, providing both technical expertise and personalized mentorship.</p>
 			</div>
 			<div class="feature-card-modern" data-aos="fade-up" data-aos-delay="200">
-				<div class="feature-icon">✓</div>
+				<div class="feature-icon">💻</div>
 				<h3>Modern Labs</h3>
 				<p>State-of-the-art computer labs with latest software, hardware, and 24/7 technical support for hands-on learning.</p>
 			</div>
 			<div class="feature-card-modern" data-aos="fade-up" data-aos-delay="300">
-				<div class="feature-icon">✓</div>
+				<div class="feature-icon">💼</div>
 				<h3>Placement Support</h3>
 				<p>Dedicated career services with industry connections, resume building, and job placement assistance.</p>
 			</div>
 			<div class="feature-card-modern" data-aos="fade-up" data-aos-delay="400">
-				<div class="feature-icon">✓</div>
+				<div class="feature-icon">📚</div>
 				<h3>Flexible Learning</h3>
 				<p>Programs available in both regular and distance mode, fitting your schedule and learning preferences.</p>
 			</div>
 			<div class="feature-card-modern" data-aos="fade-up" data-aos-delay="500">
-				<div class="feature-icon">✓</div>
+				<div class="feature-icon">🤝</div>
 				<h3>Student Support</h3>
 				<p>Personal counsel services, academic guidance, and co-curricular activities for holistic development.</p>
 			</div>
@@ -191,79 +192,6 @@
 	</div>
 </section>
 
-<!-- =========== CAMPUS GALLERY SECTION =========== -->
-<section class="section-modern gallery-section" style="background-color: #f8fafb;">
-	<div class="container">
-		<div class="section-header">
-			<span class="section-badge">Campus Life</span>
-			<h2 class="section-title">Experience Our Campus</h2>
-			<p class="section-description">Modern facilities, vibrant student life, and a supportive learning community</p>
-		</div>
-
-		<div class="gallery-grid">
-			<a href="/gallery" class="gallery-item-modern" data-aos="zoom-in">
-				<div class="gallery-image" style="background-image: url('{{ college_bg }}')"></div>
-				<div class="gallery-overlay">
-					<h4>Computer Labs</h4>
-				</div>
-			</a>
-			<a href="/gallery" class="gallery-item-modern" data-aos="zoom-in" data-aos-delay="100">
-				<div class="gallery-image" style="background-image: linear-gradient(135deg, #0A2647, #144272)"></div>
-				<div class="gallery-overlay">
-					<h4>Classroom Sessions</h4>
-				</div>
-			</a>
-			<a href="/gallery" class="gallery-item-modern" data-aos="zoom-in" data-aos-delay="200">
-				<div class="gallery-image" style="background-image: url('{{ college_bg }}')"></div>
-				<div class="gallery-overlay">
-					<h4>Campus Events</h4>
-				</div>
-			</a>
-		</div>
-
-		<div class="section-cta">
-			<a href="/gallery" class="btn btn-primary btn-lg">View Complete Gallery</a>
-		</div>
-	</div>
-</section>
-
-<!-- =========== TESTIMONIALS SECTION =========== -->
-<section class="section-modern testimonials-section">
-	<div class="container">
-		<div class="section-header">
-			<span class="section-badge">Student Reviews</span>
-			<h2 class="section-title">What Our Students Say</h2>
-			<p class="section-description">Real experiences from students who have succeeded through our programs</p>
-		</div>
-
-		<div class="testimonials-carousel">
-			<div class="testimonial-card" data-aos="fade-in">
-				<div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
-				<p class="testimonial-text">"Subhash Academy provided me with solid technical foundation and excellent mentorship. The faculty's dedication and practical approach helped me secure a great job within months of graduation."</p>
-				<div class="testimonial-author">
-					<h4>Rahul Mishra</h4>
-					<p>BCA Graduate, Software Developer at TCS</p>
-				</div>
-			</div>
-
-			<div class="testimonial-card" data-aos="fade-in">
-				<div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
-				<p class="testimonial-text">"The PGDCA program was exactly what I needed to transition into IT. The curriculum is industry-relevant, labs are equipped with latest tools, and placement support is exceptional."</p>
-				<div class="testimonial-author">
-					<h4>Priya Sharma</h4>
-					<p>PGDCA Graduate, IT Analyst at Infosys</p>
-				</div>
-			</div>
-
-			<div class="testimonial-card" data-aos="fade-in">
-				<div class="testimonial-stars">⭐⭐⭐⭐⭐</div>
-				<p class="testimonial-text">"Being from a small town, I couldn't afford expensive coaching. Subhash Academy's affordable programs and quality education opened doors for my IT career. Highly recommended!"</p>
-				<div class="testimonial-author">
-					<h4>Arun Kumar</h4>
-					<p>DCA Graduate, Systems Administrator</p>
-				</div>
-			</div>
-		</div>
 	</div>
 </section>
 

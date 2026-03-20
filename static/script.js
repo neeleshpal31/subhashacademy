@@ -221,6 +221,44 @@ document.addEventListener("keydown", function (e) {
 	}
 });
 
+/* ========== GALLERY CATEGORY FILTER ========== */
+function filterGallery(category, buttonElement) {
+	// Update active button
+	document.querySelectorAll('.filter-btn').forEach(btn => {
+		btn.classList.remove('active');
+	});
+	buttonElement.classList.add('active');
+
+	// Get all gallery items
+	const items = document.querySelectorAll('.gallery-item');
+	const noCategoryMessage = document.getElementById('noCategoryMessage');
+	let visibleCount = 0;
+
+	// Filter items
+	items.forEach(item => {
+		const itemCategory = item.getAttribute('data-category');
+		
+		if (category === 'all' || itemCategory === category) {
+			item.style.display = 'block';
+			item.style.animation = 'fadeIn 0.4s ease-in';
+			visibleCount++;
+		} else {
+			item.style.display = 'none';
+		}
+	});
+
+	// Show/hide no images message
+	if (visibleCount === 0) {
+		noCategoryMessage.style.display = 'block';
+		noCategoryMessage.style.animation = 'fadeIn 0.4s ease-in';
+	} else {
+		noCategoryMessage.style.display = 'none';
+	}
+
+	// Scroll to gallery
+	document.getElementById('galleryContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 /* ========== MODERN HOMEPAGE ANIMATIONS ========== */
 
 // Counter Animation for Statistics
