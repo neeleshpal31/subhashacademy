@@ -301,6 +301,40 @@ def delete_gallery_image(image_id):
     return redirect(url_for("dashboard", msg="Image deleted successfully."))
 
 
+@app.route("/admin/gallery/bulk-delete", methods=["POST"])
+def bulk_delete_gallery_images():
+    if not _is_admin_logged_in():
+        return redirect("/admin")
+
+    image_ids = request.form.getlist("image_ids")
+    
+    if not image_ids:
+        return redirect(url_for("dashboard", err="No images selected for deletion."))
+
+    deleted_count = 0
+    for image_id in image_ids:
+        try:
+            cursor.execute("SELECT filename FROM gallery_images WHERE id=?", (image_id,))
+            row = cursor.fetchone()
+            
+            if row:
+                filename = row[0]
+                cursor.execute("DELETE FROM gallery_images WHERE id=?", (image_id,))
+                db.commit()
+                
+                image_path = os.path.join(GALLERY_UPLOAD_DIR, filename)
+                if os.path.exists(image_path):
+                    os.remove(image_path)
+                
+                deleted_count += 1
+        except Exception as e:
+            print(f"Error deleting image {image_id}: {str(e)}")
+            continue
+
+    msg = f"{deleted_count} image(s) deleted successfully." if deleted_count > 1 else f"{deleted_count} image deleted successfully."
+    return redirect(url_for("dashboard", msg=msg))
+
+
 @app.route("/admin/admissions/delete/<int:admission_id>", methods=["POST"])
 def delete_admission(admission_id):
     if not _is_admin_logged_in():

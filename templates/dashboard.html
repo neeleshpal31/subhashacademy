@@ -54,24 +54,33 @@
         </div>
 
         <div class="panel-card mb-4">
-            <h2 class="h4 mb-3">Uploaded Gallery Images</h2>
-            <div class="admin-gallery-grid">
-                {% for img in gallery_images %}
-                <article class="admin-gallery-item">
-                    <img src="{{ url_for('static', filename='uploads/gallery/' ~ img[3]) }}" alt="{{ img[1] or 'Gallery Image' }}">
-                    <div class="admin-gallery-meta">
-                        <strong>{{ img[1] or 'Untitled' }}</strong>
-                        <span class="admin-category-chip">{{ category_labels.get(img[4], 'Uncategorized') }}</span>
-                        <p class="mb-2">{{ img[2] or 'No description' }}</p>
-                        <form action="/admin/gallery/delete/{{ img[0] }}" method="post">
-                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-                        </form>
-                    </div>
-                </article>
-                {% else %}
-                <p class="text-muted mb-0">No images uploaded yet.</p>
-                {% endfor %}
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 class="h4 mb-0">Uploaded Gallery Images</h2>
+                <div>
+                    <label style="margin-right: 1rem;">
+                        <input type="checkbox" id="selectAllGallery"> Select All
+                    </label>
+                    <button type="button" id="deleteSelectedBtn" class="btn btn-danger btn-sm" style="display: none;" onclick="deleteSelectedImages()">Delete Selected</button>
+                </div>
             </div>
+            <form id="bulkDeleteForm" method="post" action="/admin/gallery/bulk-delete">
+                <div class="admin-gallery-grid">
+                    {% for img in gallery_images %}
+                    <article class="admin-gallery-item" style="position: relative;">
+                        <input type="checkbox" name="image_ids" value="{{ img[0] }}" class="gallery-checkbox" style="position: absolute; top: 10px; left: 10px; width: 20px; height: 20px; cursor: pointer; z-index: 10;">
+                        <img src="{{ url_for('static', filename='uploads/gallery/' ~ img[3]) }}" alt="{{ img[1] or 'Gallery Image' }}">
+                        <div class="admin-gallery-meta">
+                            <strong>{{ img[1] or 'Untitled' }}</strong>
+                            <span class="admin-category-chip">{{ category_labels.get(img[4], 'Uncategorized') }}</span>
+                            <p class="mb-2">{{ img[2] or 'No description' }}</p>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="deleteImage({{ img[0] }})">Delete</button>
+                        </div>
+                    </article>
+                    {% else %}
+                    <p class="text-muted mb-0">No images uploaded yet.</p>
+                    {% endfor %}
+                </div>
+            </form>
         </div>
 
         <div class="panel-card table-panel">
@@ -116,4 +125,54 @@
         </div>
     </div>
 </section>
+
+<script>
+// Handle individual image delete
+function deleteImage(imageId) {
+    if (confirm('Delete this image?')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/admin/gallery/delete/' + imageId;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Handle select all checkbox
+document.getElementById('selectAllGallery')?.addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.gallery-checkbox');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+    updateDeleteButton();
+});
+
+// Update delete button visibility
+function updateDeleteButton() {
+    const checkedBoxes = document.querySelectorAll('.gallery-checkbox:checked');
+    const deleteBtn = document.getElementById('deleteSelectedBtn');
+    if (checkedBoxes.length > 0) {
+        deleteBtn.style.display = 'inline-block';
+    } else {
+        deleteBtn.style.display = 'none';
+    }
+}
+
+// Listen to individual checkbox changes
+document.querySelectorAll('.gallery-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', updateDeleteButton);
+});
+
+// Delete selected images
+function deleteSelectedImages() {
+    const checkedBoxes = document.querySelectorAll('.gallery-checkbox:checked');
+    if (checkedBoxes.length === 0) {
+        alert('Please select at least one image to delete');
+        return;
+    }
+    
+    if (confirm(`Delete ${checkedBoxes.length} selected image(s)? This cannot be undone.`)) {
+        document.getElementById('bulkDeleteForm').submit();
+    }
+}
+</script>
+
 {% endblock %}

@@ -1232,6 +1232,15 @@ h4 {
 	margin-bottom: 0.55rem;
 }
 
+.gallery-checkbox {
+	cursor: pointer;
+	accent-color: var(--navy) !important;
+}
+
+.gallery-checkbox:hover {
+	transform: scale(1.1);
+}
+
 .admin-gallery-meta p {
 	font-size: 0.9rem;
 	color: var(--muted);
