@@ -2678,11 +2678,11 @@ h4 {
 .lightbox-header {
 	background: linear-gradient(135deg, #0A2647 0%, #144272 100%);
 	color: white;
-	padding: 20px;
+	padding: 10px 20px;
 	display: flex;
-	justify-content: space-between;
+	justify-content: flex-end;
 	align-items: center;
-	border-bottom: 2px solid #C9A84C;
+	border-bottom: none;
 }
 
 .lightbox-header h2 {
@@ -2690,6 +2690,7 @@ h4 {
 	font-size: 1.5rem;
 	font-weight: 800;
 	letter-spacing: -0.5px;
+	display: none;
 }
 
 .lightbox-close {
@@ -2725,11 +2726,12 @@ h4 {
 
 .lightbox-image {
 	max-width: 100%;
-	max-height: 600px;
+	max-height: 85vh;
 	height: auto;
+	width: auto;
 	object-fit: contain;
 	border-radius: 10px;
-	margin-bottom: 15px;
+	margin-bottom: 0;
 }
 
 .lightbox-description {
@@ -2737,6 +2739,7 @@ h4 {
 	font-size: 1rem;
 	line-height: 1.6;
 	margin: 15px 0 0 0;
+	display: none;
 }
 
 .lightbox-toolbar {
