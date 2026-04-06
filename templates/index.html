@@ -2,7 +2,7 @@
 
 {% block title %}Subhash Academy | Modern College Education{% endblock %}
 
-{% set college_bg = url_for('static', filename='college-bg.jpg', v='20260315j') %}
+{% set college_bg = url_for('static', filename='college-bg1.jpeg', v='20260315j') %}
 {% set aicte_logo = url_for('static', filename='AICTE LOGO.png', v='20260315j') %}
 
 {% block content %}
@@ -12,15 +12,17 @@
 	<div class="hero-background" style="background-image: linear-gradient(135deg, rgba(10, 38, 71, 0.5) 0%, rgba(20, 66, 114, 0.4) 100%), url('{{ college_bg }}');"></div>
 	<div class="container hero-container">
 		<div class="hero-content">
-			<span class="hero-badge">✨ Admissions Open 2026</span>
-			<h1 class="hero-title">Excellence in IT & Management Education</h1>
-			<p class="hero-subtitle">Build your future with AICTE-approved programs designed for the modern workforce. 25+ years of transforming students into industry leaders.</p>
-			<div class="hero-cta">
-				<a href="/admission" class="btn btn-primary btn-lg">
-					<span class="btn-text">Apply Now</span>
-					<span class="btn-arrow">→</span>
-				</a>
-				<a href="/courses" class="btn btn-outline-light btn-lg">Explore Courses</a>
+			<div class="hero-copy-panel">
+				<span class="hero-badge">✨ Admissions Open 2026</span>
+				<h1 class="hero-title">Excellence in <span class="hero-title-accent">IT &amp; Management</span> Education</h1>
+				<p class="hero-subtitle">Build your future with AICTE-approved programs designed for the modern workforce. 25+ years of transforming students into industry leaders.</p>
+				<div class="hero-cta">
+					<a href="/admission" class="btn btn-primary btn-lg">
+						<span class="btn-text">Apply Now</span>
+						<span class="btn-arrow">→</span>
+					</a>
+					<a href="/courses" class="btn btn-outline-light btn-lg">Explore Courses</a>
+				</div>
 			</div>
 			<div class="hero-stats">
 				<div class="stat">

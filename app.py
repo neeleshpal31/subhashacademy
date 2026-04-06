@@ -71,21 +71,21 @@ def gallery():
     default_category_images = {
         "computer_labs": [
             url_for("static", filename="lab.jpeg"),
-            url_for("static", filename="college-bg.jpg"),
+            url_for("static", filename="college-bg1.jpeg"),
             url_for("static", filename="library.jpg.jpeg"),
         ],
         "classroom_sessions": [
-            url_for("static", filename="college-bg.jpg"),
+            url_for("static", filename="college-bg1.jpeg"),
             url_for("static", filename="lab.jpeg"),
             url_for("static", filename="director sir.jpeg"),
         ],
         "cultural_events": [
             url_for("static", filename="uploads/gallery/a9edcdcda31144d59248349cc8ef819f.jpg"),
-            url_for("static", filename="college-bg.jpg"),
+            url_for("static", filename="college-bg1.jpeg"),
             url_for("static", filename="director.jpeg"),
         ],
         "national_occasions": [
-            url_for("static", filename="college-bg.jpg"),
+            url_for("static", filename="college-bg1.jpeg"),
             url_for("static", filename="logo.jpg"),
             url_for("static", filename="AICTE LOGO.png"),
         ],
@@ -95,7 +95,7 @@ def gallery():
             url_for("static", filename="mayank sir.jpeg"),
         ],
         "campus_infrastructure": [
-            url_for("static", filename="college-bg.jpg"),
+            url_for("static", filename="college-bg1.jpeg"),
             url_for("static", filename="library.jpg.jpeg"),
             url_for("static", filename="lab.jpeg"),
         ],

@@ -4,8 +4,8 @@
 
 {% set college_logo = url_for('static', filename='logo.jpg') %}
 {% set fallback_logo = url_for('static', filename='logo.jpg') %}
-{% set director_img = url_for('static', filename='director sir.jpeg') %}
-{% set director_jpeg = url_for('static', filename='director.jpeg') + '?v=20260315fixed' %}
+{% set director_message_img = url_for('static', filename='director message.png', v='20260406b') %}
+{% set director_img = url_for('static', filename='director sir.jpeg', v='20260315e') %}
 {% set khan_img = url_for('static', filename='khan sir.jpeg', v='20260315e') %}
 {% set mahabub_img = url_for('static', filename='mahabub sir.jpeg', v='20260315e') %}
 {% set mayank_img = url_for('static', filename='mayank sir.jpeg', v='20260315e') %}
@@ -147,7 +147,7 @@
 	<div class="container">
 		<div class="director-section reveal-up" style="margin-bottom: 3rem;">
 			<div class="director-image-col">
-				<img src="/static/director.jpeg" alt="Director Devesh Kumar Saxena" class="director-image">
+				<img src="{{ director_message_img }}" alt="Director Devesh Kumar Saxena" class="director-image">
 			</div>
 			<div class="director-content-col">
 				<span class="eyebrow">Director's Message</span>

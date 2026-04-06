@@ -2256,6 +2256,18 @@ h4 {
 	padding: 4rem 0;
 }
 
+.hero-modern::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background:
+		radial-gradient(circle at 16% 26%, rgba(233, 196, 106, 0.26), transparent 32%),
+		radial-gradient(circle at 84% 18%, rgba(44, 116, 179, 0.22), transparent 30%),
+		linear-gradient(120deg, rgba(8, 24, 46, 0.3), rgba(10, 38, 71, 0.12));
+	z-index: 0;
+	pointer-events: none;
+}
+
 .hero-background {
 	position: absolute;
 	inset: 0;
@@ -2279,10 +2291,22 @@ h4 {
 
 .hero-content {
 	color: #fff;
-	max-width: 700px;
+	max-width: 900px;
 	text-align: center;
 	margin: 0 auto;
+	padding: 0;
 	animation: slideInUp 0.8s ease-out;
+}
+
+.hero-copy-panel {
+	max-width: 640px;
+	margin: 0 auto;
+	padding: 1.45rem 1.55rem;
+	background: linear-gradient(140deg, rgba(10, 38, 71, 0.35), rgba(10, 38, 71, 0.14));
+	border: 1px solid rgba(255, 255, 255, 0.18);
+	backdrop-filter: blur(4px);
+	border-radius: 18px;
+	box-shadow: 0 16px 42px rgba(6, 18, 35, 0.3);
 }
 
 .hero-badge {
@@ -2309,23 +2333,34 @@ h4 {
 	line-height: 1.1;
 	margin-bottom: 1.5rem;
 	color: #fff;
+	font-family: "Playfair Display", Georgia, serif;
 	font-weight: 800;
 	letter-spacing: -0.02em;
+	text-shadow: 0 10px 30px rgba(0, 0, 0, 0.48);
+}
+
+.hero-title-accent {
+	background: linear-gradient(135deg, #ffe8ad 0%, #e9c46a 45%, #f7d582 100%);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	text-shadow: none;
 }
 
 .hero-subtitle {
-	font-size: 1.1rem;
+	font-size: 1.12rem;
 	line-height: 1.8;
-	color: rgba(255, 255, 255, 0.9);
+	color: rgba(248, 252, 255, 0.96);
 	margin-bottom: 2rem;
 	max-width: 600px;
+	text-shadow: 0 4px 18px rgba(0, 0, 0, 0.44);
 }
 
 .hero-cta {
 	display: flex;
 	gap: 1rem;
 	flex-wrap: wrap;
-	margin-bottom: 3rem;
+	margin-bottom: 0.4rem;
 	justify-content: center;
 }
 
@@ -2380,6 +2415,11 @@ h4 {
 
 .hero-stats .stat {
 	text-align: left;
+	padding: 0.9rem 1rem;
+	background: rgba(10, 38, 71, 0.32);
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	border-radius: 14px;
+	backdrop-filter: blur(3px);
 }
 
 .stat-number {
@@ -2389,6 +2429,7 @@ h4 {
 	line-height: 1;
 	margin-bottom: 0.5rem;
 	font-family: 'Poppins', sans-serif;
+	text-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
 }
 
 .stat-label {
@@ -3369,6 +3410,15 @@ h4 {
 		padding: 3rem 0;
 	}
 
+	.hero-content {
+		max-width: 100%;
+	}
+
+	.hero-copy-panel {
+		padding: 1.2rem 0.95rem;
+		border-radius: 14px;
+	}
+
 	.hero-container {
 		min-height: auto;
 	}
@@ -3388,6 +3438,11 @@ h4 {
 	.hero-stats {
 		grid-template-columns: repeat(2, 1fr);
 		gap: 1rem;
+	}
+
+	.hero-stats .stat {
+		text-align: center;
+		padding: 0.85rem;
 	}
 
 	.hero-cta {
