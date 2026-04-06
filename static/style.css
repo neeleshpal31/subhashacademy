@@ -2271,10 +2271,21 @@ h4 {
 .hero-background {
 	position: absolute;
 	inset: 0;
-	background-size: cover;
-	background-position: center;
-	background-attachment: fixed;
 	z-index: -1;
+	overflow: hidden;
+}
+
+.hero-background::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(135deg, rgba(10, 38, 71, 0.5) 0%, rgba(20, 66, 114, 0.4) 100%);
+	pointer-events: none;
+}
+
+.hero-bg-image {
+	object-fit: cover;
+	object-position: center;
 	filter: brightness(1.1) contrast(1.15);
 }
 
@@ -3418,9 +3429,17 @@ h4 {
 	}
 
 	.hero-background {
-		background-attachment: scroll;
-		background-position: center top;
-		filter: brightness(1.03) contrast(1.08);
+		background: #0a2647;
+	}
+
+	.hero-bg-image {
+		object-fit: contain;
+		object-position: center top;
+		filter: brightness(1.04) contrast(1.08);
+	}
+
+	.hero-background::after {
+		background: linear-gradient(135deg, rgba(10, 38, 71, 0.28) 0%, rgba(20, 66, 114, 0.2) 100%);
 	}
 
 	.hero-content {
