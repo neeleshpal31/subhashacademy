@@ -1,7 +1,7 @@
 import os
 from uuid import uuid4
 
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, jsonify, render_template, request, redirect, session, url_for
 from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
 from config import db, cursor
@@ -34,6 +34,12 @@ def _is_admin_logged_in():
 def _is_allowed_image(filename):
     ext = os.path.splitext(filename)[1].lower()
     return ext in ALLOWED_IMAGE_EXTENSIONS
+
+
+@app.route("/health")
+@app.route("/healthz")
+def health_check():
+    return jsonify(status="ok"), 200
 
 # Home
 @app.route("/")
