@@ -1,4 +1,5 @@
 import os
+import time
 
 import psycopg2
 from werkzeug.security import generate_password_hash
@@ -42,23 +43,43 @@ def _get_database_url():
 
 def _connect():
     database_url = _get_database_url()
+    connect_kwargs = {"connect_timeout": 5}
+
     if database_url:
-        connect_kwargs = {"dsn": database_url}
+        connect_kwargs["dsn"] = database_url
         sslmode = os.getenv("POSTGRES_SSLMODE")
         if sslmode:
             connect_kwargs["sslmode"] = sslmode
         elif "localhost" not in database_url and "127.0.0.1" not in database_url:
             connect_kwargs["sslmode"] = "require"
-        return psycopg2.connect(**connect_kwargs)
+    else:
+        if os.getenv("RENDER") == "true":
+            raise RuntimeError(
+                "DATABASE_URL or POSTGRES_* env vars are missing on Render. "
+                "Attach the PostgreSQL database to the web service and redeploy."
+            )
 
-    return psycopg2.connect(
-        host=os.getenv("POSTGRES_HOST", "localhost"),
-        port=os.getenv("POSTGRES_PORT", "5432"),
-        dbname=os.getenv("POSTGRES_DB", "college"),
-        user=os.getenv("POSTGRES_USER", "postgres"),
-        password=os.getenv("POSTGRES_PASSWORD", ""),
-        sslmode=os.getenv("POSTGRES_SSLMODE", "prefer"),
-    )
+        connect_kwargs.update(
+            {
+                "host": os.getenv("POSTGRES_HOST", "localhost"),
+                "port": os.getenv("POSTGRES_PORT", "5432"),
+                "dbname": os.getenv("POSTGRES_DB", "college"),
+                "user": os.getenv("POSTGRES_USER", "postgres"),
+                "password": os.getenv("POSTGRES_PASSWORD", ""),
+                "sslmode": os.getenv("POSTGRES_SSLMODE", "prefer"),
+            }
+        )
+
+    last_error = None
+    for attempt in range(3):
+        try:
+            return psycopg2.connect(**connect_kwargs)
+        except psycopg2.OperationalError as exc:
+            last_error = exc
+            if attempt < 2:
+                time.sleep(2)
+
+    raise last_error
 
 
 db = _connect()
