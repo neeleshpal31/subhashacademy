@@ -6,6 +6,12 @@ from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
 from config import db, cursor
 
+try:
+    import cloudinary
+    import cloudinary.uploader
+except Exception:
+    cloudinary = None
+
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "change-this-in-production")
 app.config.update(
@@ -25,6 +31,40 @@ GALLERY_CATEGORIES = [
     ("campus_infrastructure", "Campus & Infrastructure"),
 ]
 GALLERY_CATEGORY_LABELS = dict(GALLERY_CATEGORIES)
+
+
+def _is_remote_gallery_ref(value):
+    if not value:
+        return False
+    return value.startswith("http://") or value.startswith("https://")
+
+
+def _configure_cloudinary():
+    if cloudinary is None:
+        return False
+
+    cloudinary_url = os.getenv("CLOUDINARY_URL", "").strip()
+    if cloudinary_url:
+        cloudinary.config(cloudinary_url=cloudinary_url)
+        return True
+
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "").strip()
+    api_key = os.getenv("CLOUDINARY_API_KEY", "").strip()
+    api_secret = os.getenv("CLOUDINARY_API_SECRET", "").strip()
+    if cloud_name and api_key and api_secret:
+        cloudinary.config(
+            cloud_name=cloud_name,
+            api_key=api_key,
+            api_secret=api_secret,
+            secure=True,
+        )
+        return True
+
+    return False
+
+
+CLOUDINARY_ENABLED = _configure_cloudinary()
+CLOUDINARY_FOLDER = os.getenv("CLOUDINARY_FOLDER", "subhash_academy/gallery")
 
 
 def _is_admin_logged_in():
@@ -121,7 +161,10 @@ def gallery():
     for row in gallery_images:
         category = row[4] or ""
         if category in category_images:
-            image_url = url_for("static", filename=f"uploads/gallery/{row[3]}")
+            if _is_remote_gallery_ref(row[3]):
+                image_url = row[3]
+            else:
+                image_url = url_for("static", filename=f"uploads/gallery/{row[3]}")
             category_images[category].insert(0, image_url)
 
     return render_template(
@@ -258,20 +301,30 @@ def upload_gallery_image():
             continue
 
         try:
-            original_name = secure_filename(image.filename)
-            ext = os.path.splitext(original_name)[1].lower()
-            stored_name = f"{uuid4().hex}{ext}"
+            if CLOUDINARY_ENABLED:
+                uploaded = cloudinary.uploader.upload(
+                    image,
+                    folder=CLOUDINARY_FOLDER,
+                    resource_type="image",
+                )
+                stored_ref = uploaded.get("secure_url") or uploaded.get("url")
+                if not stored_ref:
+                    continue
+            else:
+                original_name = secure_filename(image.filename)
+                ext = os.path.splitext(original_name)[1].lower()
+                stored_ref = f"{uuid4().hex}{ext}"
 
-            os.makedirs(GALLERY_UPLOAD_DIR, exist_ok=True)
-            save_path = os.path.join(GALLERY_UPLOAD_DIR, stored_name)
-            image.save(save_path)
+                os.makedirs(GALLERY_UPLOAD_DIR, exist_ok=True)
+                save_path = os.path.join(GALLERY_UPLOAD_DIR, stored_ref)
+                image.save(save_path)
 
             cursor.execute(
                 """
                 INSERT INTO gallery_images (title, description, filename, category)
                 VALUES (?, ?, ?, ?)
                 """,
-                (title, description, stored_name, category),
+                (title, description, stored_ref, category),
             )
             db.commit()
             uploaded_count += 1
@@ -300,9 +353,10 @@ def delete_gallery_image(image_id):
     cursor.execute("DELETE FROM gallery_images WHERE id=?", (image_id,))
     db.commit()
 
-    image_path = os.path.join(GALLERY_UPLOAD_DIR, filename)
-    if os.path.exists(image_path):
-        os.remove(image_path)
+    if not _is_remote_gallery_ref(filename):
+        image_path = os.path.join(GALLERY_UPLOAD_DIR, filename)
+        if os.path.exists(image_path):
+            os.remove(image_path)
 
     return redirect(url_for("dashboard", msg="Image deleted successfully."))
 
@@ -327,10 +381,11 @@ def bulk_delete_gallery_images():
                 filename = row[0]
                 cursor.execute("DELETE FROM gallery_images WHERE id=?", (image_id,))
                 db.commit()
-                
-                image_path = os.path.join(GALLERY_UPLOAD_DIR, filename)
-                if os.path.exists(image_path):
-                    os.remove(image_path)
+
+                if not _is_remote_gallery_ref(filename):
+                    image_path = os.path.join(GALLERY_UPLOAD_DIR, filename)
+                    if os.path.exists(image_path):
+                        os.remove(image_path)
                 
                 deleted_count += 1
         except Exception as e:

@@ -56,13 +56,14 @@
 		<div id="galleryContainer" class="uploaded-gallery-grid">
 			{% if gallery_images %}
 				{% for img in gallery_images %}
+				{% set image_src = img[3] if (img[3].startswith('http://') or img[3].startswith('https://')) else url_for('static', filename='uploads/gallery/' ~ img[3]) %}
 				<article class="uploaded-gallery-card reveal-up gallery-item" 
 						 data-title="{{ img[1] or 'Campus Activity' }}" 
 						 data-desc="{{ img[2] or 'Subhash Academy Campus Moment' }}" 
-						 data-image="{{ url_for('static', filename='uploads/gallery/' ~ img[3]) }}"
+						 data-image="{{ image_src }}"
 						 data-category="{{ img[4] }}"
 						 onclick="openLightbox(this)">
-					<img src="{{ url_for('static', filename='uploads/gallery/' ~ img[3]) }}" alt="{{ img[1] or 'Campus Gallery Image' }}" loading="lazy">
+					<img src="{{ image_src }}" alt="{{ img[1] or 'Campus Gallery Image' }}" loading="lazy">
 					<div class="uploaded-gallery-card__body">
 						<h3>{{ img[1] or 'Campus Activity' }}</h3>
 						<p>{{ img[2] or 'Subhash Academy Campus Moment' }}</p>
