@@ -1,19 +1,73 @@
 import os
-import sqlite3
+
+import psycopg2
 from werkzeug.security import generate_password_hash
 
 
-def _get_db_path():
-    return os.getenv("SQLITE_DB_PATH", "college.db")
+class CursorAdapter:
+    def __init__(self, cursor):
+        self._cursor = cursor
+
+    def execute(self, query, params=None):
+        adapted_query = query.replace("?", "%s")
+        if params is None:
+            self._cursor.execute(adapted_query)
+        else:
+            self._cursor.execute(adapted_query, params)
+        return self
+
+    def executemany(self, query, param_list):
+        self._cursor.executemany(query.replace("?", "%s"), param_list)
+        return self
+
+    def fetchone(self):
+        return self._cursor.fetchone()
+
+    def fetchall(self):
+        return self._cursor.fetchall()
+
+    def close(self):
+        return self._cursor.close()
+
+    def __getattr__(self, name):
+        return getattr(self._cursor, name)
 
 
-db = sqlite3.connect(_get_db_path(), check_same_thread=False)
-cursor = db.cursor()
+def _get_database_url():
+    database_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
+    if database_url and database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql://", 1)
+    return database_url
 
-cursor.execute(
+
+def _connect():
+    database_url = _get_database_url()
+    if database_url:
+        connect_kwargs = {"dsn": database_url}
+        sslmode = os.getenv("POSTGRES_SSLMODE")
+        if sslmode:
+            connect_kwargs["sslmode"] = sslmode
+        elif "localhost" not in database_url and "127.0.0.1" not in database_url:
+            connect_kwargs["sslmode"] = "require"
+        return psycopg2.connect(**connect_kwargs)
+
+    return psycopg2.connect(
+        host=os.getenv("POSTGRES_HOST", "localhost"),
+        port=os.getenv("POSTGRES_PORT", "5432"),
+        dbname=os.getenv("POSTGRES_DB", "college"),
+        user=os.getenv("POSTGRES_USER", "postgres"),
+        password=os.getenv("POSTGRES_PASSWORD", ""),
+        sslmode=os.getenv("POSTGRES_SSLMODE", "prefer"),
+    )
+
+
+db = _connect()
+_raw_cursor = db.cursor()
+
+_raw_cursor.execute(
     """
     CREATE TABLE IF NOT EXISTS admissions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
         email TEXT NOT NULL,
         phone TEXT NOT NULL,
@@ -23,36 +77,37 @@ cursor.execute(
     """
 )
 
-cursor.execute(
+_raw_cursor.execute(
     """
     CREATE TABLE IF NOT EXISTS admin (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         username TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL
     )
     """
 )
 
-cursor.execute(
+_raw_cursor.execute(
     """
     CREATE TABLE IF NOT EXISTS gallery_images (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         title TEXT,
         description TEXT,
         filename TEXT NOT NULL,
-        category TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        category TEXT DEFAULT 'campus_infrastructure',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """
 )
 
-cursor.execute("PRAGMA table_info(gallery_images)")
-gallery_columns = [row[1] for row in cursor.fetchall()]
+_raw_cursor.execute(
+    """
+    ALTER TABLE gallery_images
+    ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'campus_infrastructure'
+    """
+)
 
-if "category" not in gallery_columns:
-    cursor.execute("ALTER TABLE gallery_images ADD COLUMN category TEXT")
-
-cursor.execute(
+_raw_cursor.execute(
     """
     UPDATE gallery_images
     SET category = 'campus_infrastructure'
@@ -60,66 +115,29 @@ cursor.execute(
     """
 )
 
-cursor.execute("SELECT COUNT(*) FROM admin")
-admin_count = cursor.fetchone()[0]
+_raw_cursor.execute("SELECT COUNT(*) FROM admin")
+admin_count = _raw_cursor.fetchone()[0]
 
 if admin_count == 0:
-    cursor.execute(
-        "INSERT INTO admin (username, password) VALUES (?, ?)",
+    _raw_cursor.execute(
+        "INSERT INTO admin (username, password) VALUES (%s, %s)",
         ("admin", generate_password_hash("admin123")),
     )
 
 
-cursor.execute("SELECT id, password FROM admin")
-admin_rows = cursor.fetchall()
+_raw_cursor.execute("SELECT id, password FROM admin")
+admin_rows = _raw_cursor.fetchall()
 
 for admin_id, stored_password in admin_rows:
-    # Migrate any legacy plaintext passwords to hashed values.
     if "$" not in stored_password:
-        cursor.execute(
-            "UPDATE admin SET password=? WHERE id=?",
+        _raw_cursor.execute(
+            "UPDATE admin SET password=%s WHERE id=%s",
             (generate_password_hash(stored_password), admin_id),
         )
 
 db.commit()
 
 
-# Initialize database with default data if empty on Render
-def _initialize_default_data():
-    cursor.execute("SELECT COUNT(*) FROM admissions;")
-    admission_count = cursor.fetchone()[0]
-    
-    if admission_count == 0:
-        # Check if database initialization file exists
-        init_script_path = os.path.join(os.path.dirname(__file__), "database_init.sql")
-        if os.path.exists(init_script_path):
-            with open(init_script_path, 'r') as f:
-                sql_lines = f.readlines()
-                sql_statement = ""
-                for line in sql_lines:
-                    line = line.strip()
-                    if line and not line.startswith("--"):
-                        sql_statement += line
-                        if line.endswith(";"):
-                            try:
-                                cursor.execute(sql_statement)
-                                sql_statement = ""
-                            except Exception as e:
-                                print(f"Error executing SQL: {e}")
-                                sql_statement = ""
-            db.commit()
-        else:
-            # If init file doesn't exist, create sample data
-            cursor.execute(
-                "INSERT INTO admissions (name, email, phone, course, message) VALUES (?, ?, ?, ?, ?)",
-                ('Sample Student', 'sample@example.com', '9999999999', 'BCA', 'Sample admission entry'),
-            )
-            cursor.execute(
-                "INSERT INTO gallery_images (title, description, filename, category) VALUES (?, ?, ?, ?)",
-                ('Campus', 'College Campus', 'campus.jpg', 'campus_infrastructure'),
-            )
-            db.commit()
+cursor = CursorAdapter(db.cursor())
 
-_initialize_default_data()
-
-print("SQLite Database Connected Successfully")
+print("PostgreSQL Database Connected Successfully")
