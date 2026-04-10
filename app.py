@@ -1,16 +1,10 @@
 import os
+import mimetypes
 from uuid import uuid4
 
-from flask import Flask, jsonify, render_template, request, redirect, session, url_for
+from flask import Flask, Response, jsonify, render_template, request, redirect, session, url_for
 from werkzeug.security import check_password_hash
-from werkzeug.utils import secure_filename
 from config import db, cursor
-
-try:
-    import cloudinary
-    import cloudinary.uploader
-except Exception:
-    cloudinary = None
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "change-this-in-production")
@@ -39,32 +33,12 @@ def _is_remote_gallery_ref(value):
     return value.startswith("http://") or value.startswith("https://")
 
 
-def _configure_cloudinary():
-    if cloudinary is None:
-        return False
-
-    cloudinary_url = os.getenv("CLOUDINARY_URL", "").strip()
-    if cloudinary_url:
-        cloudinary.config(cloudinary_url=cloudinary_url)
-        return True
-
-    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "").strip()
-    api_key = os.getenv("CLOUDINARY_API_KEY", "").strip()
-    api_secret = os.getenv("CLOUDINARY_API_SECRET", "").strip()
-    if cloud_name and api_key and api_secret:
-        cloudinary.config(
-            cloud_name=cloud_name,
-            api_key=api_key,
-            api_secret=api_secret,
-            secure=True,
-        )
-        return True
-
-    return False
-
-
-CLOUDINARY_ENABLED = _configure_cloudinary()
-CLOUDINARY_FOLDER = os.getenv("CLOUDINARY_FOLDER", "subhash_academy/gallery")
+def _build_gallery_image_url(image_id, filename, has_blob):
+    if has_blob:
+        return url_for("gallery_image_blob", image_id=image_id)
+    if _is_remote_gallery_ref(filename):
+        return filename
+    return url_for("static", filename=f"uploads/gallery/{filename}")
 
 
 def _is_admin_logged_in():
@@ -74,6 +48,24 @@ def _is_admin_logged_in():
 def _is_allowed_image(filename):
     ext = os.path.splitext(filename)[1].lower()
     return ext in ALLOWED_IMAGE_EXTENSIONS
+
+
+@app.route("/media/gallery/<int:image_id>")
+def gallery_image_blob(image_id):
+    cursor.execute(
+        """
+        SELECT filename, mime_type, image_data
+        FROM gallery_images
+        WHERE id=?
+        """,
+        (image_id,),
+    )
+    row = cursor.fetchone()
+    if not row or row[2] is None:
+        return "Image not found", 404
+
+    mime_type = row[1] or mimetypes.guess_type(row[0] or "")[0] or "application/octet-stream"
+    return Response(row[2], mimetype=mime_type)
 
 
 @app.route("/health")
@@ -151,26 +143,26 @@ def gallery():
 
     cursor.execute(
         """
-        SELECT id, title, description, filename, category
+        SELECT id, title, description, filename, category, (image_data IS NOT NULL) AS has_blob
         FROM gallery_images
         ORDER BY id DESC
         """
     )
     gallery_images = cursor.fetchall()
+    image_urls = {}
 
     for row in gallery_images:
         category = row[4] or ""
+        image_url = _build_gallery_image_url(row[0], row[3], row[5])
+        image_urls[row[0]] = image_url
         if category in category_images:
-            if _is_remote_gallery_ref(row[3]):
-                image_url = row[3]
-            else:
-                image_url = url_for("static", filename=f"uploads/gallery/{row[3]}")
             category_images[category].insert(0, image_url)
 
     return render_template(
         "gallery.html",
         active_page="gallery",
         gallery_images=gallery_images,
+        image_urls=image_urls,
         category_images=category_images,
     )
 
@@ -254,12 +246,15 @@ def dashboard():
 
     cursor.execute(
         """
-        SELECT id, title, description, filename, category
+        SELECT id, title, description, filename, category, (image_data IS NOT NULL) AS has_blob
         FROM gallery_images
         ORDER BY id DESC
         """
     )
     gallery_images = cursor.fetchall()
+    image_urls = {
+        row[0]: _build_gallery_image_url(row[0], row[3], row[5]) for row in gallery_images
+    }
 
     message = request.args.get("msg", "")
     error = request.args.get("err", "")
@@ -268,6 +263,7 @@ def dashboard():
         "dashboard.html",
         data=data,
         gallery_images=gallery_images,
+        image_urls=image_urls,
         gallery_categories=GALLERY_CATEGORIES,
         category_labels=GALLERY_CATEGORY_LABELS,
         message=message,
@@ -301,30 +297,20 @@ def upload_gallery_image():
             continue
 
         try:
-            if CLOUDINARY_ENABLED:
-                uploaded = cloudinary.uploader.upload(
-                    image,
-                    folder=CLOUDINARY_FOLDER,
-                    resource_type="image",
-                )
-                stored_ref = uploaded.get("secure_url") or uploaded.get("url")
-                if not stored_ref:
-                    continue
-            else:
-                original_name = secure_filename(image.filename)
-                ext = os.path.splitext(original_name)[1].lower()
-                stored_ref = f"{uuid4().hex}{ext}"
+            ext = os.path.splitext(image.filename)[1].lower()
+            stored_name = f"{uuid4().hex}{ext}"
+            image_bytes = image.read()
+            if not image_bytes:
+                continue
 
-                os.makedirs(GALLERY_UPLOAD_DIR, exist_ok=True)
-                save_path = os.path.join(GALLERY_UPLOAD_DIR, stored_ref)
-                image.save(save_path)
+            mime_type = (image.mimetype or "").strip() or mimetypes.guess_type(stored_name)[0] or "application/octet-stream"
 
             cursor.execute(
                 """
-                INSERT INTO gallery_images (title, description, filename, category)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO gallery_images (title, description, filename, category, image_data, mime_type)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (title, description, stored_ref, category),
+                (title, description, stored_name, category, image_bytes, mime_type),
             )
             db.commit()
             uploaded_count += 1
@@ -343,17 +329,18 @@ def delete_gallery_image(image_id):
     if not _is_admin_logged_in():
         return redirect("/admin")
 
-    cursor.execute("SELECT filename FROM gallery_images WHERE id=?", (image_id,))
+    cursor.execute("SELECT filename, (image_data IS NOT NULL) FROM gallery_images WHERE id=?", (image_id,))
     row = cursor.fetchone()
 
     if not row:
         return redirect(url_for("dashboard", err="Image record not found."))
 
     filename = row[0]
+    has_blob = bool(row[1])
     cursor.execute("DELETE FROM gallery_images WHERE id=?", (image_id,))
     db.commit()
 
-    if not _is_remote_gallery_ref(filename):
+    if (not has_blob) and (not _is_remote_gallery_ref(filename)):
         image_path = os.path.join(GALLERY_UPLOAD_DIR, filename)
         if os.path.exists(image_path):
             os.remove(image_path)
@@ -374,15 +361,16 @@ def bulk_delete_gallery_images():
     deleted_count = 0
     for image_id in image_ids:
         try:
-            cursor.execute("SELECT filename FROM gallery_images WHERE id=?", (image_id,))
+            cursor.execute("SELECT filename, (image_data IS NOT NULL) FROM gallery_images WHERE id=?", (image_id,))
             row = cursor.fetchone()
             
             if row:
                 filename = row[0]
+                has_blob = bool(row[1])
                 cursor.execute("DELETE FROM gallery_images WHERE id=?", (image_id,))
                 db.commit()
 
-                if not _is_remote_gallery_ref(filename):
+                if (not has_blob) and (not _is_remote_gallery_ref(filename)):
                     image_path = os.path.join(GALLERY_UPLOAD_DIR, filename)
                     if os.path.exists(image_path):
                         os.remove(image_path)

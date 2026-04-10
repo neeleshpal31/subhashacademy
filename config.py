@@ -116,6 +116,8 @@ _raw_cursor.execute(
         description TEXT,
         filename TEXT NOT NULL,
         category TEXT DEFAULT 'campus_infrastructure',
+        image_data BYTEA,
+        mime_type TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     """
@@ -125,6 +127,20 @@ _raw_cursor.execute(
     """
     ALTER TABLE gallery_images
     ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'campus_infrastructure'
+    """
+)
+
+_raw_cursor.execute(
+    """
+    ALTER TABLE gallery_images
+    ADD COLUMN IF NOT EXISTS image_data BYTEA
+    """
+)
+
+_raw_cursor.execute(
+    """
+    ALTER TABLE gallery_images
+    ADD COLUMN IF NOT EXISTS mime_type TEXT
     """
 )
 

@@ -66,7 +66,7 @@
             <form id="bulkDeleteForm" method="post" action="/admin/gallery/bulk-delete">
                 <div class="admin-gallery-grid">
                     {% for img in gallery_images %}
-                    {% set image_src = img[3] if (img[3].startswith('http://') or img[3].startswith('https://')) else url_for('static', filename='uploads/gallery/' ~ img[3]) %}
+                    {% set image_src = image_urls.get(img[0], url_for('static', filename='uploads/gallery/' ~ img[3])) %}
                     <article class="admin-gallery-item" style="position: relative;">
                         <input type="checkbox" name="image_ids" value="{{ img[0] }}" class="gallery-checkbox" style="position: absolute; top: 10px; left: 10px; width: 20px; height: 20px; cursor: pointer; z-index: 10;">
                         <img src="{{ image_src }}" alt="{{ img[1] or 'Gallery Image' }}">
