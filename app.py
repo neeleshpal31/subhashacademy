@@ -56,7 +56,7 @@ def gallery_image_blob(image_id):
         """
         SELECT filename, mime_type, image_data
         FROM gallery_images
-        WHERE id=?
+        WHERE id=%s
         """,
         (image_id,),
     )
@@ -64,8 +64,9 @@ def gallery_image_blob(image_id):
     if not row or row[2] is None:
         return "Image not found", 404
 
+    image_data = row[2].tobytes() if isinstance(row[2], memoryview) else row[2]
     mime_type = row[1] or mimetypes.guess_type(row[0] or "")[0] or "application/octet-stream"
-    return Response(row[2], mimetype=mime_type)
+    return Response(image_data, mimetype=mime_type)
 
 
 @app.route("/health")
@@ -197,7 +198,7 @@ def submit():
     query = """
     INSERT INTO admissions
     (name,email,phone,course,message)
-    VALUES (?,?,?,?,?)
+    VALUES (%s,%s,%s,%s,%s)
     """
 
     cursor.execute(query,(name,email,phone,course,message))
@@ -219,7 +220,7 @@ def adminlogin():
     username = request.form["username"].strip()
     password = request.form["password"]
 
-    query = "SELECT id, username, password FROM admin WHERE username=?"
+    query = "SELECT id, username, password FROM admin WHERE username=%s"
 
     cursor.execute(query,(username,))
 
@@ -308,7 +309,7 @@ def upload_gallery_image():
             cursor.execute(
                 """
                 INSERT INTO gallery_images (title, description, filename, category, image_data, mime_type)
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 """,
                 (title, description, stored_name, category, image_bytes, mime_type),
             )
@@ -329,7 +330,7 @@ def delete_gallery_image(image_id):
     if not _is_admin_logged_in():
         return redirect("/admin")
 
-    cursor.execute("SELECT filename, (image_data IS NOT NULL) FROM gallery_images WHERE id=?", (image_id,))
+    cursor.execute("SELECT filename, (image_data IS NOT NULL) FROM gallery_images WHERE id=%s", (image_id,))
     row = cursor.fetchone()
 
     if not row:
@@ -337,7 +338,7 @@ def delete_gallery_image(image_id):
 
     filename = row[0]
     has_blob = bool(row[1])
-    cursor.execute("DELETE FROM gallery_images WHERE id=?", (image_id,))
+    cursor.execute("DELETE FROM gallery_images WHERE id=%s", (image_id,))
     db.commit()
 
     if (not has_blob) and (not _is_remote_gallery_ref(filename)):
@@ -361,13 +362,13 @@ def bulk_delete_gallery_images():
     deleted_count = 0
     for image_id in image_ids:
         try:
-            cursor.execute("SELECT filename, (image_data IS NOT NULL) FROM gallery_images WHERE id=?", (image_id,))
+            cursor.execute("SELECT filename, (image_data IS NOT NULL) FROM gallery_images WHERE id=%s", (image_id,))
             row = cursor.fetchone()
             
             if row:
                 filename = row[0]
                 has_blob = bool(row[1])
-                cursor.execute("DELETE FROM gallery_images WHERE id=?", (image_id,))
+                cursor.execute("DELETE FROM gallery_images WHERE id=%s", (image_id,))
                 db.commit()
 
                 if (not has_blob) and (not _is_remote_gallery_ref(filename)):
@@ -389,13 +390,13 @@ def delete_admission(admission_id):
     if not _is_admin_logged_in():
         return redirect("/admin")
 
-    cursor.execute("SELECT id FROM admissions WHERE id=?", (admission_id,))
+    cursor.execute("SELECT id FROM admissions WHERE id=%s", (admission_id,))
     row = cursor.fetchone()
 
     if not row:
         return redirect(url_for("dashboard", err="Admission record not found."))
 
-    cursor.execute("DELETE FROM admissions WHERE id=?", (admission_id,))
+    cursor.execute("DELETE FROM admissions WHERE id=%s", (admission_id,))
     db.commit()
 
     return redirect(url_for("dashboard", msg="Admission record deleted successfully."))

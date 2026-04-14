@@ -1,17 +1,20 @@
 services:
   - type: web
-    name: my-college-website
+    name: subhashacademy
     runtime: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn -c gunicorn.conf.py app:app
     envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: subhashacademy-postgres
+          property: connectionString
       - key: FLASK_SECRET_KEY
         generateValue: true
       - key: FLASK_SECURE_COOKIE
         value: "1"
-      - key: SQLITE_DB_PATH
-        value: /var/data/college.db
-    disk:
-      name: sqlite-data
-      mountPath: /var/data
-      sizeGB: 1
+
+databases:
+  - name: subhashacademy-postgres
+    databaseName: college_db
+    user: college_user

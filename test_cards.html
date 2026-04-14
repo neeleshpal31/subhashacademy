@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Test Program Cards</title>
+<style>
+body { font-family: Arial; background: #f0f0f0; padding: 20px; }
+.test-card {
+    background: white;
+    padding: 20px;
+    margin: 10px 0;
+    border-radius: 10px;
+    border-top: 4px solid gold;
+}
+.test-card h3 { margin: 0 0 10px 0; color: #0a2647; }
+.test-card p { margin: 5px 0; color: #666; }
+</style>
+</head>
+<body>
+
+<h1>Testing Program Card Rendering</h1>
+
+<div class="test-card">
+    <h3>Bachelor of Computer Application</h3>
+    <p class="program-duration">3 Years | ₹10,900/Semester</p>
+    <p class="program-desc">Master advanced programming, database management, and software development.</p>
+</div>
+
+<div class="test-card">
+    <h3>Post Graduate Diploma in Computer App.</h3>
+    <p class="program-duration">1 Year | ₹8,500/Semester</p>
+    <p class="program-desc">Fast-track your IT career with focused diploma study.</p>
+</div>
+
+<div class="test-card">
+    <h3>Diploma in Computer Application</h3>
+    <p class="program-duration">1 Year | ₹5,760/Semester</p>
+    <p class="program-desc">Start your computer education journey with foundational skills.</p>
+</div>
+
+<hr>
+
+<h2>HTML Structure Check:</h2>
+<pre id="check"></pre>
+
+<script>
+document.getElementById('check').textContent = 'Test cards are rendering correctly above.';
+console.log('Check console for any errors');
+</script>
+
+</body>
+</html>

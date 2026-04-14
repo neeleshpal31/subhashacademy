@@ -1,6 +1,6 @@
-# Render Deployment (SQLite)
+# Render Deployment (PostgreSQL)
 
-This project is now configured to run with SQLite on Render.
+This project is configured to run with PostgreSQL on Render.
 
 ## 1) One-time setup on Render
 
@@ -9,17 +9,16 @@ This project is now configured to run with SQLite on Render.
 3. Use `render.yaml` (Blueprint) or set values manually:
    - Build Command: `pip install -r requirements.txt`
    - Start Command: `gunicorn -c gunicorn.conf.py app:app`
-4. Add a Persistent Disk:
-   - Mount path: `/var/data`
-   - Size: `1 GB` (or more)
+4. Create a PostgreSQL database service in Render.
 5. Set environment variables:
-   - `SQLITE_DB_PATH=/var/data/college.db`
+   - `DATABASE_URL=<Render PostgreSQL connection string>`
    - `FLASK_SECRET_KEY=<strong-random-secret>`
    - `FLASK_SECURE_COOKIE=1`
+   - Optional: `PGSSLMODE=require` (recommended for hosted DB)
 
-## 2) Why persistent disk is required
+## 2) Why PostgreSQL is better on Render
 
-SQLite file must survive restarts. Without a disk mount, Render's filesystem is ephemeral and data can be lost on redeploy/restart.
+PostgreSQL is managed, persistent, and supports concurrent requests better than file-based SQLite for production apps.
 
 ## 3) Health checks
 
@@ -33,4 +32,4 @@ Both should return status `ok`.
 
 - Database tables are auto-created by `config.py` at app startup.
 - Admin default is seeded only when `admin` table is empty.
-- For SQLite stability, Gunicorn threads default is set to 1 in `gunicorn.conf.py`.
+- Existing frontend (HTML/CSS/JS) remains unchanged; only backend database is migrated.
