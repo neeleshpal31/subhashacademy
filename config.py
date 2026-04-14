@@ -1,85 +1,25 @@
 import os
-import time
+import sqlite3
 
-import psycopg2
 from werkzeug.security import generate_password_hash
 
 
-class CursorAdapter:
-    def __init__(self, cursor):
-        self._cursor = cursor
-
-    def execute(self, query, params=None):
-        adapted_query = query.replace("?", "%s")
-        if params is None:
-            self._cursor.execute(adapted_query)
-        else:
-            self._cursor.execute(adapted_query, params)
-        return self
-
-    def executemany(self, query, param_list):
-        self._cursor.executemany(query.replace("?", "%s"), param_list)
-        return self
-
-    def fetchone(self):
-        return self._cursor.fetchone()
-
-    def fetchall(self):
-        return self._cursor.fetchall()
-
-    def close(self):
-        return self._cursor.close()
-
-    def __getattr__(self, name):
-        return getattr(self._cursor, name)
-
-
-def _get_database_url():
-    database_url = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL")
-    if database_url and database_url.startswith("postgres://"):
-        database_url = database_url.replace("postgres://", "postgresql://", 1)
-    return database_url
+def _get_db_path():
+    default_path = os.path.join(os.path.dirname(__file__), "college.db")
+    return os.getenv("SQLITE_DB_PATH", default_path)
 
 
 def _connect():
-    database_url = _get_database_url()
-    connect_kwargs = {"connect_timeout": 5}
+    db_path = _get_db_path()
+    connection = sqlite3.connect(db_path, check_same_thread=False)
+    return connection
 
-    if database_url:
-        connect_kwargs["dsn"] = database_url
-        sslmode = os.getenv("POSTGRES_SSLMODE")
-        if sslmode:
-            connect_kwargs["sslmode"] = sslmode
-        elif "localhost" not in database_url and "127.0.0.1" not in database_url:
-            connect_kwargs["sslmode"] = "require"
-    else:
-        if os.getenv("RENDER") == "true":
-            raise RuntimeError(
-                "DATABASE_URL or POSTGRES_* env vars are missing on Render. "
-                "Attach the PostgreSQL database to the web service and redeploy."
-            )
 
-        connect_kwargs.update(
-            {
-                "host": os.getenv("POSTGRES_HOST", "localhost"),
-                "port": os.getenv("POSTGRES_PORT", "5432"),
-                "dbname": os.getenv("POSTGRES_DB", "college"),
-                "user": os.getenv("POSTGRES_USER", "postgres"),
-                "password": os.getenv("POSTGRES_PASSWORD", ""),
-                "sslmode": os.getenv("POSTGRES_SSLMODE", "prefer"),
-            }
-        )
-
-    last_error = None
-    for attempt in range(3):
-        try:
-            return psycopg2.connect(**connect_kwargs)
-        except psycopg2.OperationalError as exc:
-            last_error = exc
-            if attempt < 2:
-                time.sleep(2)
-
-    raise last_error
+def _ensure_column(raw_cursor, table_name, column_name, column_sql):
+    raw_cursor.execute(f"PRAGMA table_info({table_name})")
+    existing_columns = {row[1] for row in raw_cursor.fetchall()}
+    if column_name not in existing_columns:
+        raw_cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_sql}")
 
 
 db = _connect()
@@ -88,7 +28,7 @@ _raw_cursor = db.cursor()
 _raw_cursor.execute(
     """
     CREATE TABLE IF NOT EXISTS admissions (
-        id SERIAL PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         email TEXT NOT NULL,
         phone TEXT NOT NULL,
@@ -101,7 +41,7 @@ _raw_cursor.execute(
 _raw_cursor.execute(
     """
     CREATE TABLE IF NOT EXISTS admin (
-        id SERIAL PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL
     )
@@ -111,38 +51,21 @@ _raw_cursor.execute(
 _raw_cursor.execute(
     """
     CREATE TABLE IF NOT EXISTS gallery_images (
-        id SERIAL PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT,
         description TEXT,
         filename TEXT NOT NULL,
         category TEXT DEFAULT 'campus_infrastructure',
-        image_data BYTEA,
+        image_data BLOB,
         mime_type TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
     """
 )
 
-_raw_cursor.execute(
-    """
-    ALTER TABLE gallery_images
-    ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'campus_infrastructure'
-    """
-)
-
-_raw_cursor.execute(
-    """
-    ALTER TABLE gallery_images
-    ADD COLUMN IF NOT EXISTS image_data BYTEA
-    """
-)
-
-_raw_cursor.execute(
-    """
-    ALTER TABLE gallery_images
-    ADD COLUMN IF NOT EXISTS mime_type TEXT
-    """
-)
+_ensure_column(_raw_cursor, "gallery_images", "category", "category TEXT DEFAULT 'campus_infrastructure'")
+_ensure_column(_raw_cursor, "gallery_images", "image_data", "image_data BLOB")
+_ensure_column(_raw_cursor, "gallery_images", "mime_type", "mime_type TEXT")
 
 _raw_cursor.execute(
     """
@@ -157,10 +80,9 @@ admin_count = _raw_cursor.fetchone()[0]
 
 if admin_count == 0:
     _raw_cursor.execute(
-        "INSERT INTO admin (username, password) VALUES (%s, %s)",
+        "INSERT INTO admin (username, password) VALUES (?, ?)",
         ("admin", generate_password_hash("admin123")),
     )
-
 
 _raw_cursor.execute("SELECT id, password FROM admin")
 admin_rows = _raw_cursor.fetchall()
@@ -168,13 +90,11 @@ admin_rows = _raw_cursor.fetchall()
 for admin_id, stored_password in admin_rows:
     if "$" not in stored_password:
         _raw_cursor.execute(
-            "UPDATE admin SET password=%s WHERE id=%s",
+            "UPDATE admin SET password=? WHERE id=?",
             (generate_password_hash(stored_password), admin_id),
         )
 
 db.commit()
+cursor = db.cursor()
 
-
-cursor = CursorAdapter(db.cursor())
-
-print("PostgreSQL Database Connected Successfully")
+print("SQLite Database Connected Successfully")
