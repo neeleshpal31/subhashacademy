@@ -5,7 +5,6 @@ __pycache__/
 college.db
 *.db-shm
 *.db-wal
-static/uploads/gallery/
 check_db.py
 check_tables.py
 dump_db.py
