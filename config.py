@@ -6,12 +6,20 @@ from werkzeug.security import generate_password_hash
 
 def _get_db_path():
     default_path = os.path.join(os.path.dirname(__file__), "college.db")
-    return os.getenv("SQLITE_DB_PATH", default_path)
+    db_path = os.getenv("SQLITE_DB_PATH", default_path)
+    db_dir = os.path.dirname(os.path.abspath(db_path))
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
+    return db_path
 
 
 def _connect():
     db_path = _get_db_path()
-    connection = sqlite3.connect(db_path, check_same_thread=False)
+    connection = sqlite3.connect(db_path, check_same_thread=False, timeout=30)
+    connection.execute("PRAGMA foreign_keys = ON")
+    connection.execute("PRAGMA journal_mode = WAL")
+    connection.execute("PRAGMA synchronous = NORMAL")
+    connection.execute("PRAGMA busy_timeout = 30000")
     return connection
 
 
