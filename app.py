@@ -50,17 +50,55 @@ def _is_allowed_image(filename):
     return ext in ALLOWED_IMAGE_EXTENSIONS
 
 
+def _fetch_all_safe(query, params=None):
+    try:
+        with db.cursor() as local_cursor:
+            local_cursor.execute(query, params or ())
+            return local_cursor.fetchall()
+    except Exception as exc:
+        db.rollback()
+        print(f"Database query failed: {exc}")
+        return []
+
+
+def _fetch_one_safe(query, params=None):
+    try:
+        with db.cursor() as local_cursor:
+            local_cursor.execute(query, params or ())
+            return local_cursor.fetchone()
+    except Exception as exc:
+        db.rollback()
+        print(f"Database query failed: {exc}")
+        return None
+
+
+def _verify_admin_password(admin_id, stored_password, raw_password):
+    if not stored_password:
+        return False
+
+    is_valid = False
+    try:
+        is_valid = check_password_hash(stored_password, raw_password)
+    except ValueError:
+        # Supports legacy plain-text or non-werkzeug hash values without crashing login.
+        is_valid = stored_password == raw_password
+
+    if (not is_valid) and stored_password == raw_password:
+        is_valid = True
+
+    return is_valid
+
+
 @app.route("/media/gallery/<int:image_id>")
 def gallery_image_blob(image_id):
-    cursor.execute(
+    row = _fetch_one_safe(
         """
         SELECT filename, mime_type, image_data
         FROM gallery_images
         WHERE id=%s
         """,
-        (image_id,),
+        (image_id,)
     )
-    row = cursor.fetchone()
     if not row or row[2] is None:
         return "Image not found", 404
 
@@ -142,14 +180,13 @@ def gallery():
 
     category_images = {k: list(v) for k, v in default_category_images.items()}
 
-    cursor.execute(
+    gallery_images = _fetch_all_safe(
         """
         SELECT id, title, description, filename, category, (image_data IS NOT NULL) AS has_blob
         FROM gallery_images
         ORDER BY id DESC
         """
     )
-    gallery_images = cursor.fetchall()
     image_urls = {}
 
     for row in gallery_images:
@@ -220,13 +257,12 @@ def adminlogin():
     username = request.form["username"].strip()
     password = request.form["password"]
 
-    query = "SELECT id, username, password FROM admin WHERE username=%s"
+    admin = _fetch_one_safe(
+        "SELECT id, username, password FROM admin WHERE username=%s",
+        (username,),
+    )
 
-    cursor.execute(query,(username,))
-
-    admin = cursor.fetchone()
-
-    if admin and check_password_hash(admin[2], password):
+    if admin and _verify_admin_password(admin[0], admin[2], password):
         session["admin_id"] = admin[0]
         session["admin_username"] = admin[1]
         return redirect("/dashboard")
@@ -241,18 +277,15 @@ def dashboard():
     if not _is_admin_logged_in():
         return redirect("/admin")
 
-    cursor.execute("SELECT * FROM admissions")
+    data = _fetch_all_safe("SELECT * FROM admissions")
 
-    data = cursor.fetchall()
-
-    cursor.execute(
+    gallery_images = _fetch_all_safe(
         """
         SELECT id, title, description, filename, category, (image_data IS NOT NULL) AS has_blob
         FROM gallery_images
         ORDER BY id DESC
         """
     )
-    gallery_images = cursor.fetchall()
     image_urls = {
         row[0]: _build_gallery_image_url(row[0], row[3], row[5]) for row in gallery_images
     }
