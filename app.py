@@ -4,7 +4,10 @@ from uuid import uuid4
 
 from flask import Flask, Response, jsonify, render_template, request, redirect, session, url_for
 from werkzeug.security import check_password_hash
-from config import db, cursor
+import config
+
+db = config.db
+cursor = config.cursor
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "change-this-in-production")
@@ -50,26 +53,67 @@ def _is_allowed_image(filename):
     return ext in ALLOWED_IMAGE_EXTENSIONS
 
 
-def _fetch_all_safe(query, params=None):
+def _ensure_db_connection():
+    global db, cursor
+
     try:
-        with db.cursor() as local_cursor:
+        if db is None or getattr(db, "closed", 1) != 0:
+            config.db = config._connect()
+            db = config.db
+            cursor = db.cursor()
+            config.cursor = cursor
+        return db
+    except Exception as exc:
+        print(f"Database reconnect failed: {exc}")
+        raise
+
+
+def _safe_rollback(connection):
+    try:
+        if connection is not None and getattr(connection, "closed", 1) == 0:
+            connection.rollback()
+    except Exception:
+        pass
+
+
+def _fetch_all_safe(query, params=None):
+    connection = None
+    try:
+        connection = _ensure_db_connection()
+        with connection.cursor() as local_cursor:
             local_cursor.execute(query, params or ())
             return local_cursor.fetchall()
     except Exception as exc:
-        db.rollback()
+        _safe_rollback(connection)
         print(f"Database query failed: {exc}")
         return []
 
 
 def _fetch_one_safe(query, params=None):
+    connection = None
     try:
-        with db.cursor() as local_cursor:
+        connection = _ensure_db_connection()
+        with connection.cursor() as local_cursor:
             local_cursor.execute(query, params or ())
             return local_cursor.fetchone()
     except Exception as exc:
-        db.rollback()
+        _safe_rollback(connection)
         print(f"Database query failed: {exc}")
         return None
+
+
+def _execute_write_safe(query, params=None):
+    connection = None
+    try:
+        connection = _ensure_db_connection()
+        with connection.cursor() as local_cursor:
+            local_cursor.execute(query, params or ())
+        connection.commit()
+        return True
+    except Exception as exc:
+        _safe_rollback(connection)
+        print(f"Database write failed: {exc}")
+        return False
 
 
 def _verify_admin_password(admin_id, stored_password, raw_password):
@@ -232,14 +276,21 @@ def submit():
             active_page="admission",
         )
 
-    query = """
-    INSERT INTO admissions
-    (name,email,phone,course,message)
-    VALUES (%s,%s,%s,%s,%s)
-    """
+    saved = _execute_write_safe(
+        """
+        INSERT INTO admissions
+        (name,email,phone,course,message)
+        VALUES (%s,%s,%s,%s,%s)
+        """,
+        (name, email, phone, course, message),
+    )
 
-    cursor.execute(query,(name,email,phone,course,message))
-    db.commit()
+    if not saved:
+        return render_template(
+            "admission.html",
+            error="Submission failed due to a temporary server issue. Please try again.",
+            active_page="admission",
+        )
 
     return render_template("success.html", active_page="admission")
 
@@ -339,15 +390,15 @@ def upload_gallery_image():
 
             mime_type = (image.mimetype or "").strip() or mimetypes.guess_type(stored_name)[0] or "application/octet-stream"
 
-            cursor.execute(
+            saved = _execute_write_safe(
                 """
                 INSERT INTO gallery_images (title, description, filename, category, image_data, mime_type)
                 VALUES (%s, %s, %s, %s, %s, %s)
                 """,
                 (title, description, stored_name, category, image_bytes, mime_type),
             )
-            db.commit()
-            uploaded_count += 1
+            if saved:
+                uploaded_count += 1
         except Exception:
             continue
 
@@ -363,16 +414,19 @@ def delete_gallery_image(image_id):
     if not _is_admin_logged_in():
         return redirect("/admin")
 
-    cursor.execute("SELECT filename, (image_data IS NOT NULL) FROM gallery_images WHERE id=%s", (image_id,))
-    row = cursor.fetchone()
+    row = _fetch_one_safe(
+        "SELECT filename, (image_data IS NOT NULL) FROM gallery_images WHERE id=%s",
+        (image_id,),
+    )
 
     if not row:
         return redirect(url_for("dashboard", err="Image record not found."))
 
     filename = row[0]
     has_blob = bool(row[1])
-    cursor.execute("DELETE FROM gallery_images WHERE id=%s", (image_id,))
-    db.commit()
+    deleted = _execute_write_safe("DELETE FROM gallery_images WHERE id=%s", (image_id,))
+    if not deleted:
+        return redirect(url_for("dashboard", err="Unable to delete image right now."))
 
     if (not has_blob) and (not _is_remote_gallery_ref(filename)):
         image_path = os.path.join(GALLERY_UPLOAD_DIR, filename)
@@ -395,14 +449,17 @@ def bulk_delete_gallery_images():
     deleted_count = 0
     for image_id in image_ids:
         try:
-            cursor.execute("SELECT filename, (image_data IS NOT NULL) FROM gallery_images WHERE id=%s", (image_id,))
-            row = cursor.fetchone()
+            row = _fetch_one_safe(
+                "SELECT filename, (image_data IS NOT NULL) FROM gallery_images WHERE id=%s",
+                (image_id,),
+            )
             
             if row:
                 filename = row[0]
                 has_blob = bool(row[1])
-                cursor.execute("DELETE FROM gallery_images WHERE id=%s", (image_id,))
-                db.commit()
+                deleted = _execute_write_safe("DELETE FROM gallery_images WHERE id=%s", (image_id,))
+                if not deleted:
+                    continue
 
                 if (not has_blob) and (not _is_remote_gallery_ref(filename)):
                     image_path = os.path.join(GALLERY_UPLOAD_DIR, filename)
@@ -423,14 +480,14 @@ def delete_admission(admission_id):
     if not _is_admin_logged_in():
         return redirect("/admin")
 
-    cursor.execute("SELECT id FROM admissions WHERE id=%s", (admission_id,))
-    row = cursor.fetchone()
+    row = _fetch_one_safe("SELECT id FROM admissions WHERE id=%s", (admission_id,))
 
     if not row:
         return redirect(url_for("dashboard", err="Admission record not found."))
 
-    cursor.execute("DELETE FROM admissions WHERE id=%s", (admission_id,))
-    db.commit()
+    deleted = _execute_write_safe("DELETE FROM admissions WHERE id=%s", (admission_id,))
+    if not deleted:
+        return redirect(url_for("dashboard", err="Unable to delete admission right now."))
 
     return redirect(url_for("dashboard", msg="Admission record deleted successfully."))
 
