@@ -108,6 +108,18 @@ document.addEventListener("DOMContentLoaded", function () {
 		currentTestimonial = (currentTestimonial + 1) % testimonials.length;
 		updateTestimonial(currentTestimonial);
 	}, 6000);
+
+	// Ensure gallery items are visible on page load
+	setTimeout(function () {
+		const galleryItems = document.querySelectorAll('.gallery-item');
+		galleryItems.forEach(function (item) {
+			const rect = item.getBoundingClientRect();
+			// If item is in viewport or recently scrolled to, ensure is-visible
+			if (rect.top < window.innerHeight && rect.bottom > 0) {
+				item.classList.add('is-visible');
+			}
+		});
+	}, 100);
 });
 
 /* ── Gallery Lightbox ── */
@@ -240,10 +252,12 @@ function filterGallery(category, buttonElement) {
 		
 		if (category === 'all' || itemCategory === category) {
 			item.style.display = 'block';
-			item.style.animation = 'fadeIn 0.4s ease-in';
+			// Ensure animation visibility class is added for proper rendering
+			item.classList.add('is-visible');
 			visibleCount++;
 		} else {
 			item.style.display = 'none';
+			item.classList.remove('is-visible');
 		}
 	});
 
