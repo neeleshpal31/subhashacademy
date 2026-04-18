@@ -395,7 +395,6 @@ def upload_gallery_image():
 
         uploaded_count = 0
         total_bytes = 0
-        rows_to_insert = []
         for image in images:
             if not image or not image.filename:
                 continue
@@ -421,32 +420,22 @@ def upload_gallery_image():
 
                 mime_type = (image.mimetype or "").strip() or mimetypes.guess_type(stored_name)[0] or "application/octet-stream"
 
-                rows_to_insert.append((title, description, stored_name, category, image_bytes, mime_type))
-                uploaded_count += 1
+                saved = _execute_write_safe(
+                    """
+                    INSERT INTO gallery_images (title, description, filename, category, image_data, mime_type)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    """,
+                    (title, description, stored_name, category, image_bytes, mime_type),
+                )
+                if saved:
+                    uploaded_count += 1
             except Exception as file_exc:
                 print(f"Gallery upload failed for file '{getattr(image, 'filename', 'unknown')}': {file_exc}")
                 print(traceback.format_exc())
                 continue
 
-        if uploaded_count == 0 or not rows_to_insert:
+        if uploaded_count == 0:
             return redirect(url_for("dashboard", err="No valid image files uploaded."))
-
-        connection = _ensure_db_connection()
-        try:
-            with connection.cursor() as local_cursor:
-                local_cursor.executemany(
-                    """
-                    INSERT INTO gallery_images (title, description, filename, category, image_data, mime_type)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                    """,
-                    rows_to_insert,
-                )
-            connection.commit()
-        except Exception as db_exc:
-            _safe_rollback(connection)
-            print(f"Gallery bulk upload DB error: {db_exc}")
-            print(traceback.format_exc())
-            return redirect(url_for("dashboard", err="Upload failed while saving to database. Please retry in smaller batches."))
 
         msg = f"{uploaded_count} image(s) uploaded successfully." if uploaded_count > 1 else "1 image uploaded successfully."
         return redirect(url_for("dashboard", msg=msg))
