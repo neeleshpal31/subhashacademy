@@ -21,8 +21,8 @@ app.config.update(
 
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 GALLERY_UPLOAD_DIR = os.path.join(app.static_folder, "uploads", "gallery")
-MAX_GALLERY_FILES_PER_REQUEST = int(os.getenv("MAX_GALLERY_FILES_PER_REQUEST", "100"))
-MAX_GALLERY_TOTAL_BYTES = int(os.getenv("MAX_GALLERY_TOTAL_BYTES", str(200 * 1024 * 1024)))
+MAX_GALLERY_FILES_PER_REQUEST = int(os.getenv("MAX_GALLERY_FILES_PER_REQUEST", "20"))
+MAX_GALLERY_TOTAL_BYTES = int(os.getenv("MAX_GALLERY_TOTAL_BYTES", str(80 * 1024 * 1024)))
 GALLERY_CATEGORIES = [
     ("computer_labs", "Computer Labs"),
     ("classroom_sessions", "Classroom Sessions"),
@@ -32,6 +32,8 @@ GALLERY_CATEGORIES = [
     ("campus_infrastructure", "Campus & Infrastructure"),
 ]
 GALLERY_CATEGORY_LABELS = dict(GALLERY_CATEGORIES)
+app.config["MAX_CONTENT_LENGTH"] = MAX_GALLERY_TOTAL_BYTES
+os.makedirs(GALLERY_UPLOAD_DIR, exist_ok=True)
 
 
 def _is_remote_gallery_ref(value):
@@ -394,7 +396,6 @@ def upload_gallery_image():
             )
 
         uploaded_count = 0
-        total_bytes = 0
         for image in images:
             if not image or not image.filename:
                 continue
@@ -405,30 +406,23 @@ def upload_gallery_image():
             try:
                 ext = os.path.splitext(image.filename)[1].lower()
                 stored_name = f"{uuid4().hex}{ext}"
-                image_bytes = image.read()
-                if not image_bytes:
-                    continue
-
-                total_bytes += len(image_bytes)
-                if total_bytes > MAX_GALLERY_TOTAL_BYTES:
-                    return redirect(
-                        url_for(
-                            "dashboard",
-                            err="Total upload size is too large. Please split images into smaller batches.",
-                        )
-                    )
+                image_path = os.path.join(GALLERY_UPLOAD_DIR, stored_name)
+                image.save(image_path)
 
                 mime_type = (image.mimetype or "").strip() or mimetypes.guess_type(stored_name)[0] or "application/octet-stream"
 
                 saved = _execute_write_safe(
                     """
-                    INSERT INTO gallery_images (title, description, filename, category, image_data, mime_type)
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                    INSERT INTO gallery_images (title, description, filename, category, mime_type)
+                    VALUES (%s, %s, %s, %s, %s)
                     """,
-                    (title, description, stored_name, category, image_bytes, mime_type),
+                    (title, description, stored_name, category, mime_type),
                 )
                 if saved:
                     uploaded_count += 1
+                else:
+                    if os.path.exists(image_path):
+                        os.remove(image_path)
             except Exception as file_exc:
                 print(f"Gallery upload failed for file '{getattr(image, 'filename', 'unknown')}': {file_exc}")
                 print(traceback.format_exc())
