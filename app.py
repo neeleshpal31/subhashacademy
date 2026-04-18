@@ -22,9 +22,10 @@ app.config.update(
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 GALLERY_UPLOAD_DIR = os.path.join(app.static_folder, "uploads", "gallery")
 MAX_GALLERY_FILES_PER_REQUEST = int(os.getenv("MAX_GALLERY_FILES_PER_REQUEST", "100"))
-MAX_GALLERY_TOTAL_BYTES = int(os.getenv("MAX_GALLERY_TOTAL_BYTES", str(300 * 1024 * 1024)))
-MAX_GALLERY_FILE_BYTES = int(os.getenv("MAX_GALLERY_FILE_BYTES", str(10 * 1024 * 1024)))
-MAX_GALLERY_BATCH_FILES = int(os.getenv("MAX_GALLERY_BATCH_FILES", "20"))
+MAX_GALLERY_TOTAL_BYTES = int(os.getenv("MAX_GALLERY_TOTAL_BYTES", str(100 * 1024 * 1024)))
+MAX_GALLERY_FILE_BYTES = int(os.getenv("MAX_GALLERY_FILE_BYTES", str(25 * 1024 * 1024)))
+MAX_GALLERY_BATCH_FILES = int(os.getenv("MAX_GALLERY_BATCH_FILES", "8"))
+MAX_GALLERY_BATCH_MB = int(os.getenv("MAX_GALLERY_BATCH_MB", "60"))
 MAX_GALLERY_TOTAL_MB = max(1, MAX_GALLERY_TOTAL_BYTES // (1024 * 1024))
 MAX_GALLERY_FILE_MB = max(1, MAX_GALLERY_FILE_BYTES // (1024 * 1024))
 GALLERY_CATEGORIES = [
@@ -380,8 +381,10 @@ def dashboard():
         category_labels=GALLERY_CATEGORY_LABELS,
         gallery_limit_count=MAX_GALLERY_FILES_PER_REQUEST,
         gallery_batch_size=MAX_GALLERY_BATCH_FILES,
+        gallery_batch_target_mb=MAX_GALLERY_BATCH_MB,
         gallery_limit_total_mb=MAX_GALLERY_TOTAL_MB,
         gallery_limit_file_mb=MAX_GALLERY_FILE_MB,
+        gallery_limit_file_bytes=MAX_GALLERY_FILE_BYTES,
         message=message,
         error=error,
         active_page="admin",

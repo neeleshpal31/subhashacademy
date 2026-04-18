@@ -25,7 +25,7 @@
 
         <div class="panel-card mb-4">
             <h2 class="h4 mb-3">Manage Website Gallery Images</h2>
-            <form id="galleryUploadForm" action="/admin/gallery/upload" method="post" enctype="multipart/form-data" class="styled-form" data-batch-size="{{ gallery_batch_size }}">
+            <form id="galleryUploadForm" action="/admin/gallery/upload" method="post" enctype="multipart/form-data" class="styled-form" data-batch-size="{{ gallery_batch_size }}" data-batch-target-mb="{{ gallery_batch_target_mb }}" data-max-file-bytes="{{ gallery_limit_file_bytes }}">
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label">Gallery Category</label>
@@ -48,7 +48,7 @@
                         <label class="form-label">Image Files (Multiple Select)</label>
                         <input type="file" name="images" class="form-control" accept=".jpg,.jpeg,.png,.webp" multiple required>
                         <small class="text-muted d-block mt-2">
-                            Max {{ gallery_limit_count }} files per upload, approx {{ gallery_limit_total_mb }}MB per request, and {{ gallery_limit_file_mb }}MB per image.
+                            You can select many images at once. System auto-uploads in background batches (about {{ gallery_batch_target_mb }}MB or {{ gallery_batch_size }} files per batch). Per-image limit: {{ gallery_limit_file_mb }}MB.
                         </small>
                     </div>
                 </div>
@@ -143,6 +143,9 @@ async function uploadInBatches(form) {
     const fileInput = form.querySelector('input[name="images"]');
     const files = Array.from(fileInput.files || []);
     const batchSize = Math.max(1, parseInt(form.dataset.batchSize || '20', 10));
+    const batchTargetMb = Math.max(1, parseInt(form.dataset.batchTargetMb || '60', 10));
+    const maxFileBytes = Math.max(1, parseInt(form.dataset.maxFileBytes || '0', 10));
+    const batchTargetBytes = batchTargetMb * 1024 * 1024;
 
     if (!category) {
         alert('Please select gallery category.');
@@ -154,7 +157,41 @@ async function uploadInBatches(form) {
         return;
     }
 
-    const totalBatches = Math.ceil(files.length / batchSize);
+    const acceptedFiles = [];
+    let skippedBySize = 0;
+    files.forEach((file) => {
+        if (maxFileBytes > 0 && file.size > maxFileBytes) {
+            skippedBySize += 1;
+            return;
+        }
+        acceptedFiles.push(file);
+    });
+
+    if (!acceptedFiles.length) {
+        alert('All selected files exceed per-image size limit. Please choose smaller images.');
+        return;
+    }
+
+    const batches = [];
+    let currentBatch = [];
+    let currentBytes = 0;
+
+    acceptedFiles.forEach((file) => {
+        const wouldOverflowCount = currentBatch.length >= batchSize;
+        const wouldOverflowSize = (currentBytes + file.size) > batchTargetBytes;
+        if (currentBatch.length > 0 && (wouldOverflowCount || wouldOverflowSize)) {
+            batches.push(currentBatch);
+            currentBatch = [];
+            currentBytes = 0;
+        }
+        currentBatch.push(file);
+        currentBytes += file.size;
+    });
+    if (currentBatch.length > 0) {
+        batches.push(currentBatch);
+    }
+
+    const totalBatches = batches.length;
     let successCount = 0;
     let skippedCount = 0;
     let lastMessage = '';
@@ -163,8 +200,7 @@ async function uploadInBatches(form) {
 
     try {
         for (let i = 0; i < totalBatches; i++) {
-            const start = i * batchSize;
-            const chunk = files.slice(start, start + batchSize);
+            const chunk = batches[i];
 
             if (galleryUploadStatus) {
                 galleryUploadStatus.textContent = `Uploading batch ${i + 1}/${totalBatches}...`;
@@ -198,6 +234,9 @@ async function uploadInBatches(form) {
         }
 
         let finalMsg = `${successCount} image(s) uploaded successfully.`;
+        if (skippedBySize > 0) {
+            finalMsg += ` ${skippedBySize} file(s) skipped due to per-image size limit.`;
+        }
         if (skippedCount > 0) {
             finalMsg += ` ${skippedCount} file(s) were skipped due to size limit.`;
         }
