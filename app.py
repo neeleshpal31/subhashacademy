@@ -433,6 +433,13 @@ def upload_gallery_image():
 
         msg = f"{uploaded_count} image(s) uploaded successfully." if uploaded_count > 1 else "1 image uploaded successfully."
         return redirect(url_for("dashboard", msg=msg))
+    except RequestEntityTooLarge:
+        return redirect(
+            url_for(
+                "dashboard",
+                err="Upload size exceeded limit. Please upload fewer/smaller images (recommended: 10-20 files per batch).",
+            )
+        )
     except Exception as exc:
         print(f"Gallery upload route error: {exc}")
         print(traceback.format_exc())
