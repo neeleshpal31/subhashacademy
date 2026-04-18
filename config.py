@@ -4,21 +4,37 @@ import psycopg2
 from werkzeug.security import generate_password_hash
 
 
-def _get_database_url():
-    database_url = os.getenv("DATABASE_URL", "").strip()
-    if not database_url:
-        raise RuntimeError("DATABASE_URL is required for PostgreSQL connection.")
+def _normalize_database_url(database_url):
     if database_url.startswith("postgres://"):
-        database_url = database_url.replace("postgres://", "postgresql://", 1)
+        return database_url.replace("postgres://", "postgresql://", 1)
     return database_url
 
 
+def _get_database_url():
+    database_url = os.getenv("DATABASE_URL", "").strip()
+    if not database_url:
+        database_url = os.getenv("SUPABASE_DB_URL", "").strip()
+    if not database_url:
+        raise RuntimeError("DATABASE_URL (or SUPABASE_DB_URL) is required for PostgreSQL connection.")
+    return _normalize_database_url(database_url)
+
+
+def _detect_default_ssl_mode(database_url):
+    if "supabase.co" in database_url:
+        return "require"
+    return ""
+
+
 def _connect():
-    connect_kwargs = {"connect_timeout": 15}
-    sslmode = os.getenv("PGSSLMODE", "").strip()
+    database_url = _get_database_url()
+    connect_kwargs = {
+        "connect_timeout": 15,
+        "application_name": "subhashacademy-web",
+    }
+    sslmode = os.getenv("PGSSLMODE", "").strip() or _detect_default_ssl_mode(database_url)
     if sslmode:
         connect_kwargs["sslmode"] = sslmode
-    connection = psycopg2.connect(_get_database_url(), **connect_kwargs)
+    connection = psycopg2.connect(database_url, **connect_kwargs)
     return connection
 
 

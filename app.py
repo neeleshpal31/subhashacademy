@@ -1,5 +1,6 @@
 import os
 import mimetypes
+import traceback
 from uuid import uuid4
 
 from flask import Flask, Response, jsonify, render_template, request, redirect, session, url_for
@@ -362,51 +363,58 @@ def upload_gallery_image():
     if not _is_admin_logged_in():
         return redirect("/admin")
 
-    images = request.files.getlist("images")  # Get multiple files
-    title = request.form.get("title", "").strip()
-    description = request.form.get("description", "").strip()
-    category = request.form.get("category", "").strip()
+    try:
+        images = request.files.getlist("images")
+        title = request.form.get("title", "").strip()
+        description = request.form.get("description", "").strip()
+        category = request.form.get("category", "").strip()
 
-    if category not in GALLERY_CATEGORY_LABELS:
-        return redirect(url_for("dashboard", err="Please choose a valid category."))
+        if category not in GALLERY_CATEGORY_LABELS:
+            return redirect(url_for("dashboard", err="Please choose a valid category."))
 
-    if not images or not images[0].filename:
-        return redirect(url_for("dashboard", err="Please choose at least one image file."))
+        if not images or not images[0].filename:
+            return redirect(url_for("dashboard", err="Please choose at least one image file."))
 
-    uploaded_count = 0
-    for image in images:
-        if not image or not image.filename:
-            continue
-
-        if not _is_allowed_image(image.filename):
-            continue
-
-        try:
-            ext = os.path.splitext(image.filename)[1].lower()
-            stored_name = f"{uuid4().hex}{ext}"
-            image_bytes = image.read()
-            if not image_bytes:
+        uploaded_count = 0
+        for image in images:
+            if not image or not image.filename:
                 continue
 
-            mime_type = (image.mimetype or "").strip() or mimetypes.guess_type(stored_name)[0] or "application/octet-stream"
+            if not _is_allowed_image(image.filename):
+                continue
 
-            saved = _execute_write_safe(
-                """
-                INSERT INTO gallery_images (title, description, filename, category, image_data, mime_type)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                """,
-                (title, description, stored_name, category, image_bytes, mime_type),
-            )
-            if saved:
-                uploaded_count += 1
-        except Exception:
-            continue
+            try:
+                ext = os.path.splitext(image.filename)[1].lower()
+                stored_name = f"{uuid4().hex}{ext}"
+                image_bytes = image.read()
+                if not image_bytes:
+                    continue
 
-    if uploaded_count == 0:
-        return redirect(url_for("dashboard", err="No valid image files uploaded."))
-    
-    msg = f"{uploaded_count} image(s) uploaded successfully." if uploaded_count > 1 else "1 image uploaded successfully."
-    return redirect(url_for("dashboard", msg=msg))
+                mime_type = (image.mimetype or "").strip() or mimetypes.guess_type(stored_name)[0] or "application/octet-stream"
+
+                saved = _execute_write_safe(
+                    """
+                    INSERT INTO gallery_images (title, description, filename, category, image_data, mime_type)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    """,
+                    (title, description, stored_name, category, image_bytes, mime_type),
+                )
+                if saved:
+                    uploaded_count += 1
+            except Exception as file_exc:
+                print(f"Gallery upload failed for file '{getattr(image, 'filename', 'unknown')}': {file_exc}")
+                print(traceback.format_exc())
+                continue
+
+        if uploaded_count == 0:
+            return redirect(url_for("dashboard", err="No valid image files uploaded."))
+
+        msg = f"{uploaded_count} image(s) uploaded successfully." if uploaded_count > 1 else "1 image uploaded successfully."
+        return redirect(url_for("dashboard", msg=msg))
+    except Exception as exc:
+        print(f"Gallery upload route error: {exc}")
+        print(traceback.format_exc())
+        return redirect(url_for("dashboard", err="Upload failed due to a server issue. Please try again."))
 
 
 @app.route("/admin/gallery/delete/<int:image_id>", methods=["POST"])
