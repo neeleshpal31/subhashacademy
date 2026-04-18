@@ -25,7 +25,7 @@
 
         <div class="panel-card mb-4">
             <h2 class="h4 mb-3">Manage Website Gallery Images</h2>
-            <form action="/admin/gallery/upload" method="post" enctype="multipart/form-data" class="styled-form">
+            <form id="galleryUploadForm" action="/admin/gallery/upload" method="post" enctype="multipart/form-data" class="styled-form" data-batch-size="{{ gallery_batch_size }}">
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label">Gallery Category</label>
@@ -52,7 +52,8 @@
                         </small>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary mt-3">Upload Image</button>
+                <button id="galleryUploadButton" type="submit" class="btn btn-primary mt-3">Upload Image</button>
+                <small id="galleryUploadStatus" class="text-muted d-block mt-2"></small>
             </form>
         </div>
 
@@ -131,6 +132,96 @@
 </section>
 
 <script>
+const galleryUploadForm = document.getElementById('galleryUploadForm');
+const galleryUploadButton = document.getElementById('galleryUploadButton');
+const galleryUploadStatus = document.getElementById('galleryUploadStatus');
+
+async function uploadInBatches(form) {
+    const category = form.querySelector('select[name="category"]').value;
+    const title = form.querySelector('input[name="title"]').value || '';
+    const description = form.querySelector('input[name="description"]').value || '';
+    const fileInput = form.querySelector('input[name="images"]');
+    const files = Array.from(fileInput.files || []);
+    const batchSize = Math.max(1, parseInt(form.dataset.batchSize || '20', 10));
+
+    if (!category) {
+        alert('Please select gallery category.');
+        return;
+    }
+
+    if (!files.length) {
+        alert('Please choose at least one image.');
+        return;
+    }
+
+    const totalBatches = Math.ceil(files.length / batchSize);
+    let successCount = 0;
+    let skippedCount = 0;
+    let lastMessage = '';
+
+    galleryUploadButton.disabled = true;
+
+    try {
+        for (let i = 0; i < totalBatches; i++) {
+            const start = i * batchSize;
+            const chunk = files.slice(start, start + batchSize);
+
+            if (galleryUploadStatus) {
+                galleryUploadStatus.textContent = `Uploading batch ${i + 1}/${totalBatches}...`;
+            }
+
+            const formData = new FormData();
+            formData.append('category', category);
+            formData.append('title', title);
+            formData.append('description', description);
+            chunk.forEach((file) => formData.append('images', file));
+
+            const res = await fetch('/admin/gallery/upload-json', {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin',
+            });
+
+            if (res.status === 401) {
+                window.location.href = '/admin';
+                return;
+            }
+
+            const data = await res.json();
+            if (!res.ok || !data.ok) {
+                throw new Error(data.error || 'Upload failed for one of the batches.');
+            }
+
+            successCount += data.uploaded_count || 0;
+            skippedCount += data.skipped_oversize || 0;
+            lastMessage = data.message || '';
+        }
+
+        let finalMsg = `${successCount} image(s) uploaded successfully.`;
+        if (skippedCount > 0) {
+            finalMsg += ` ${skippedCount} file(s) were skipped due to size limit.`;
+        }
+        if (!successCount && lastMessage) {
+            finalMsg = lastMessage;
+        }
+        window.location.href = '/dashboard?msg=' + encodeURIComponent(finalMsg);
+    } catch (error) {
+        window.location.href = '/dashboard?err=' + encodeURIComponent(error.message || 'Upload failed. Please try again.');
+    } finally {
+        galleryUploadButton.disabled = false;
+        if (galleryUploadStatus) {
+            galleryUploadStatus.textContent = '';
+        }
+    }
+}
+
+if (galleryUploadForm) {
+    galleryUploadForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        uploadInBatches(galleryUploadForm);
+    });
+}
+
 // Handle individual image delete
 function deleteImage(imageId) {
     if (confirm('Delete this image?')) {

@@ -24,6 +24,7 @@ GALLERY_UPLOAD_DIR = os.path.join(app.static_folder, "uploads", "gallery")
 MAX_GALLERY_FILES_PER_REQUEST = int(os.getenv("MAX_GALLERY_FILES_PER_REQUEST", "100"))
 MAX_GALLERY_TOTAL_BYTES = int(os.getenv("MAX_GALLERY_TOTAL_BYTES", str(300 * 1024 * 1024)))
 MAX_GALLERY_FILE_BYTES = int(os.getenv("MAX_GALLERY_FILE_BYTES", str(10 * 1024 * 1024)))
+MAX_GALLERY_BATCH_FILES = int(os.getenv("MAX_GALLERY_BATCH_FILES", "20"))
 MAX_GALLERY_TOTAL_MB = max(1, MAX_GALLERY_TOTAL_BYTES // (1024 * 1024))
 MAX_GALLERY_FILE_MB = max(1, MAX_GALLERY_FILE_BYTES // (1024 * 1024))
 GALLERY_CATEGORIES = [
@@ -378,12 +379,99 @@ def dashboard():
         gallery_categories=GALLERY_CATEGORIES,
         category_labels=GALLERY_CATEGORY_LABELS,
         gallery_limit_count=MAX_GALLERY_FILES_PER_REQUEST,
+        gallery_batch_size=MAX_GALLERY_BATCH_FILES,
         gallery_limit_total_mb=MAX_GALLERY_TOTAL_MB,
         gallery_limit_file_mb=MAX_GALLERY_FILE_MB,
         message=message,
         error=error,
         active_page="admin",
     )
+
+
+def _process_gallery_upload(images, title, description, category):
+    if category not in GALLERY_CATEGORY_LABELS:
+        return {
+            "ok": False,
+            "error": "Please choose a valid category.",
+            "status": 400,
+        }
+
+    if not images or not images[0].filename:
+        return {
+            "ok": False,
+            "error": "Please choose at least one image file.",
+            "status": 400,
+        }
+
+    if len(images) > MAX_GALLERY_FILES_PER_REQUEST:
+        return {
+            "ok": False,
+            "error": f"Too many files in one request. Please upload at most {MAX_GALLERY_FILES_PER_REQUEST} files at a time.",
+            "status": 400,
+        }
+
+    uploaded_count = 0
+    skipped_oversize = 0
+    for image in images:
+        if not image or not image.filename:
+            continue
+
+        if not _is_allowed_image(image.filename):
+            continue
+
+        try:
+            file_size = _get_uploaded_file_size(image)
+            if file_size > MAX_GALLERY_FILE_BYTES:
+                skipped_oversize += 1
+                continue
+
+            ext = os.path.splitext(image.filename)[1].lower()
+            stored_name = f"{uuid4().hex}{ext}"
+            image_path = os.path.join(GALLERY_UPLOAD_DIR, stored_name)
+            image.save(image_path)
+
+            mime_type = (image.mimetype or "").strip() or mimetypes.guess_type(stored_name)[0] or "application/octet-stream"
+
+            saved = _execute_write_safe(
+                """
+                INSERT INTO gallery_images (title, description, filename, category, mime_type)
+                VALUES (%s, %s, %s, %s, %s)
+                """,
+                (title, description, stored_name, category, mime_type),
+            )
+            if saved:
+                uploaded_count += 1
+            elif os.path.exists(image_path):
+                os.remove(image_path)
+        except Exception as file_exc:
+            print(f"Gallery upload failed for file '{getattr(image, 'filename', 'unknown')}': {file_exc}")
+            print(traceback.format_exc())
+            continue
+
+    if uploaded_count == 0:
+        if skipped_oversize > 0:
+            return {
+                "ok": False,
+                "error": f"No images uploaded. {skipped_oversize} file(s) exceeded {MAX_GALLERY_FILE_MB}MB per-image limit.",
+                "status": 400,
+            }
+        return {
+            "ok": False,
+            "error": "No valid image files uploaded.",
+            "status": 400,
+        }
+
+    msg = f"{uploaded_count} image(s) uploaded successfully." if uploaded_count > 1 else "1 image uploaded successfully."
+    if skipped_oversize > 0:
+        msg = f"{msg} {skipped_oversize} file(s) skipped (>{MAX_GALLERY_FILE_MB}MB each)."
+
+    return {
+        "ok": True,
+        "message": msg,
+        "uploaded_count": uploaded_count,
+        "skipped_oversize": skipped_oversize,
+        "status": 200,
+    }
 
 
 @app.route("/admin/gallery/upload", methods=["POST"])
@@ -396,74 +484,10 @@ def upload_gallery_image():
         title = request.form.get("title", "").strip()
         description = request.form.get("description", "").strip()
         category = request.form.get("category", "").strip()
-
-        if category not in GALLERY_CATEGORY_LABELS:
-            return redirect(url_for("dashboard", err="Please choose a valid category."))
-
-        if not images or not images[0].filename:
-            return redirect(url_for("dashboard", err="Please choose at least one image file."))
-
-        if len(images) > MAX_GALLERY_FILES_PER_REQUEST:
-            return redirect(
-                url_for(
-                    "dashboard",
-                    err=f"Too many files in one request. Please upload at most {MAX_GALLERY_FILES_PER_REQUEST} files at a time.",
-                )
-            )
-
-        uploaded_count = 0
-        skipped_oversize = 0
-        for image in images:
-            if not image or not image.filename:
-                continue
-
-            if not _is_allowed_image(image.filename):
-                continue
-
-            try:
-                file_size = _get_uploaded_file_size(image)
-                if file_size > MAX_GALLERY_FILE_BYTES:
-                    skipped_oversize += 1
-                    continue
-
-                ext = os.path.splitext(image.filename)[1].lower()
-                stored_name = f"{uuid4().hex}{ext}"
-                image_path = os.path.join(GALLERY_UPLOAD_DIR, stored_name)
-                image.save(image_path)
-
-                mime_type = (image.mimetype or "").strip() or mimetypes.guess_type(stored_name)[0] or "application/octet-stream"
-
-                saved = _execute_write_safe(
-                    """
-                    INSERT INTO gallery_images (title, description, filename, category, mime_type)
-                    VALUES (%s, %s, %s, %s, %s)
-                    """,
-                    (title, description, stored_name, category, mime_type),
-                )
-                if saved:
-                    uploaded_count += 1
-                else:
-                    if os.path.exists(image_path):
-                        os.remove(image_path)
-            except Exception as file_exc:
-                print(f"Gallery upload failed for file '{getattr(image, 'filename', 'unknown')}': {file_exc}")
-                print(traceback.format_exc())
-                continue
-
-        if uploaded_count == 0:
-            if skipped_oversize > 0:
-                return redirect(
-                    url_for(
-                        "dashboard",
-                        err=f"No images uploaded. {skipped_oversize} file(s) exceeded {MAX_GALLERY_FILE_MB}MB per-image limit.",
-                    )
-                )
-            return redirect(url_for("dashboard", err="No valid image files uploaded."))
-
-        msg = f"{uploaded_count} image(s) uploaded successfully." if uploaded_count > 1 else "1 image uploaded successfully."
-        if skipped_oversize > 0:
-            msg = f"{msg} {skipped_oversize} file(s) skipped (>{MAX_GALLERY_FILE_MB}MB each)."
-        return redirect(url_for("dashboard", msg=msg))
+        result = _process_gallery_upload(images, title, description, category)
+        if result["ok"]:
+            return redirect(url_for("dashboard", msg=result["message"]))
+        return redirect(url_for("dashboard", err=result["error"]))
     except RequestEntityTooLarge:
         return redirect(
             url_for(
@@ -475,6 +499,34 @@ def upload_gallery_image():
         print(f"Gallery upload route error: {exc}")
         print(traceback.format_exc())
         return redirect(url_for("dashboard", err="Upload failed due to a server issue. Please try again."))
+
+
+@app.route("/admin/gallery/upload-json", methods=["POST"])
+def upload_gallery_image_json():
+    if not _is_admin_logged_in():
+        return jsonify(ok=False, error="Unauthorized"), 401
+
+    try:
+        images = request.files.getlist("images")
+        title = request.form.get("title", "").strip()
+        description = request.form.get("description", "").strip()
+        category = request.form.get("category", "").strip()
+
+        result = _process_gallery_upload(images, title, description, category)
+        status_code = result.pop("status", 200)
+        return jsonify(result), status_code
+    except RequestEntityTooLarge:
+        return (
+            jsonify(
+                ok=False,
+                error=f"Upload size exceeded limit. Max {MAX_GALLERY_FILES_PER_REQUEST} files and ~{MAX_GALLERY_TOTAL_MB}MB per request.",
+            ),
+            413,
+        )
+    except Exception as exc:
+        print(f"Gallery JSON upload route error: {exc}")
+        print(traceback.format_exc())
+        return jsonify(ok=False, error="Upload failed due to a server issue. Please try again."), 500
 
 
 @app.route("/admin/gallery/delete/<int:image_id>", methods=["POST"])
