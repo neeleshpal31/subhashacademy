@@ -52,7 +52,11 @@ def _build_gallery_image_url(image_id, filename, has_blob):
         return url_for("gallery_image_blob", image_id=image_id)
     if _is_remote_gallery_ref(filename):
         return filename
-    return url_for("static", filename=f"uploads/gallery/{filename}")
+    local_path = os.path.join(GALLERY_UPLOAD_DIR, filename or "")
+    if filename and os.path.exists(local_path):
+        return url_for("static", filename=f"uploads/gallery/{filename}")
+    # Fallback for legacy rows where file path exists in DB but file is unavailable on server disk.
+    return url_for("static", filename="college-bg1.jpeg")
 
 
 def _is_admin_logged_in():
@@ -430,22 +434,21 @@ def _process_gallery_upload(images, title, description, category):
 
             ext = os.path.splitext(image.filename)[1].lower()
             stored_name = f"{uuid4().hex}{ext}"
-            image_path = os.path.join(GALLERY_UPLOAD_DIR, stored_name)
-            image.save(image_path)
+            image_bytes = image.read()
+            if not image_bytes:
+                continue
 
             mime_type = (image.mimetype or "").strip() or mimetypes.guess_type(stored_name)[0] or "application/octet-stream"
 
             saved = _execute_write_safe(
                 """
-                INSERT INTO gallery_images (title, description, filename, category, mime_type)
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO gallery_images (title, description, filename, category, image_data, mime_type)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 """,
-                (title, description, stored_name, category, mime_type),
+                (title, description, stored_name, category, image_bytes, mime_type),
             )
             if saved:
                 uploaded_count += 1
-            elif os.path.exists(image_path):
-                os.remove(image_path)
         except Exception as file_exc:
             print(f"Gallery upload failed for file '{getattr(image, 'filename', 'unknown')}': {file_exc}")
             print(traceback.format_exc())
