@@ -4,6 +4,7 @@ import traceback
 from uuid import uuid4
 
 from flask import Flask, Response, jsonify, render_template, request, redirect, session, url_for
+from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.security import check_password_hash
 import config
 
@@ -20,6 +21,8 @@ app.config.update(
 
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 GALLERY_UPLOAD_DIR = os.path.join(app.static_folder, "uploads", "gallery")
+MAX_GALLERY_FILES_PER_REQUEST = int(os.getenv("MAX_GALLERY_FILES_PER_REQUEST", "100"))
+MAX_GALLERY_TOTAL_BYTES = int(os.getenv("MAX_GALLERY_TOTAL_BYTES", str(200 * 1024 * 1024)))
 GALLERY_CATEGORIES = [
     ("computer_labs", "Computer Labs"),
     ("classroom_sessions", "Classroom Sessions"),
@@ -132,6 +135,13 @@ def _verify_admin_password(admin_id, stored_password, raw_password):
         is_valid = True
 
     return is_valid
+
+
+@app.errorhandler(RequestEntityTooLarge)
+def handle_large_upload(_error):
+    if _is_admin_logged_in():
+        return redirect(url_for("dashboard", err="Upload size is too large. Please upload smaller batches."))
+    return "Upload payload too large", 413
 
 
 @app.route("/media/gallery/<int:image_id>")
@@ -375,7 +385,17 @@ def upload_gallery_image():
         if not images or not images[0].filename:
             return redirect(url_for("dashboard", err="Please choose at least one image file."))
 
+        if len(images) > MAX_GALLERY_FILES_PER_REQUEST:
+            return redirect(
+                url_for(
+                    "dashboard",
+                    err=f"Too many files in one request. Please upload at most {MAX_GALLERY_FILES_PER_REQUEST} files at a time.",
+                )
+            )
+
         uploaded_count = 0
+        total_bytes = 0
+        rows_to_insert = []
         for image in images:
             if not image or not image.filename:
                 continue
@@ -390,24 +410,43 @@ def upload_gallery_image():
                 if not image_bytes:
                     continue
 
+                total_bytes += len(image_bytes)
+                if total_bytes > MAX_GALLERY_TOTAL_BYTES:
+                    return redirect(
+                        url_for(
+                            "dashboard",
+                            err="Total upload size is too large. Please split images into smaller batches.",
+                        )
+                    )
+
                 mime_type = (image.mimetype or "").strip() or mimetypes.guess_type(stored_name)[0] or "application/octet-stream"
 
-                saved = _execute_write_safe(
-                    """
-                    INSERT INTO gallery_images (title, description, filename, category, image_data, mime_type)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                    """,
-                    (title, description, stored_name, category, image_bytes, mime_type),
-                )
-                if saved:
-                    uploaded_count += 1
+                rows_to_insert.append((title, description, stored_name, category, image_bytes, mime_type))
+                uploaded_count += 1
             except Exception as file_exc:
                 print(f"Gallery upload failed for file '{getattr(image, 'filename', 'unknown')}': {file_exc}")
                 print(traceback.format_exc())
                 continue
 
-        if uploaded_count == 0:
+        if uploaded_count == 0 or not rows_to_insert:
             return redirect(url_for("dashboard", err="No valid image files uploaded."))
+
+        connection = _ensure_db_connection()
+        try:
+            with connection.cursor() as local_cursor:
+                local_cursor.executemany(
+                    """
+                    INSERT INTO gallery_images (title, description, filename, category, image_data, mime_type)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    """,
+                    rows_to_insert,
+                )
+            connection.commit()
+        except Exception as db_exc:
+            _safe_rollback(connection)
+            print(f"Gallery bulk upload DB error: {db_exc}")
+            print(traceback.format_exc())
+            return redirect(url_for("dashboard", err="Upload failed while saving to database. Please retry in smaller batches."))
 
         msg = f"{uploaded_count} image(s) uploaded successfully." if uploaded_count > 1 else "1 image uploaded successfully."
         return redirect(url_for("dashboard", msg=msg))
