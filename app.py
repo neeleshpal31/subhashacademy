@@ -22,7 +22,10 @@ app.config.update(
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 GALLERY_UPLOAD_DIR = os.path.join(app.static_folder, "uploads", "gallery")
 MAX_GALLERY_FILES_PER_REQUEST = int(os.getenv("MAX_GALLERY_FILES_PER_REQUEST", "100"))
-MAX_GALLERY_TOTAL_BYTES = int(os.getenv("MAX_GALLERY_TOTAL_BYTES", str(80 * 1024 * 1024)))
+MAX_GALLERY_TOTAL_BYTES = int(os.getenv("MAX_GALLERY_TOTAL_BYTES", str(300 * 1024 * 1024)))
+MAX_GALLERY_FILE_BYTES = int(os.getenv("MAX_GALLERY_FILE_BYTES", str(10 * 1024 * 1024)))
+MAX_GALLERY_TOTAL_MB = max(1, MAX_GALLERY_TOTAL_BYTES // (1024 * 1024))
+MAX_GALLERY_FILE_MB = max(1, MAX_GALLERY_FILE_BYTES // (1024 * 1024))
 GALLERY_CATEGORIES = [
     ("computer_labs", "Computer Labs"),
     ("classroom_sessions", "Classroom Sessions"),
@@ -57,6 +60,16 @@ def _is_admin_logged_in():
 def _is_allowed_image(filename):
     ext = os.path.splitext(filename)[1].lower()
     return ext in ALLOWED_IMAGE_EXTENSIONS
+
+
+def _get_uploaded_file_size(file_storage):
+    try:
+        file_storage.stream.seek(0, os.SEEK_END)
+        size = file_storage.stream.tell()
+        file_storage.stream.seek(0)
+        return size
+    except Exception:
+        return 0
 
 
 def _ensure_db_connection():
@@ -364,6 +377,9 @@ def dashboard():
         image_urls=image_urls,
         gallery_categories=GALLERY_CATEGORIES,
         category_labels=GALLERY_CATEGORY_LABELS,
+        gallery_limit_count=MAX_GALLERY_FILES_PER_REQUEST,
+        gallery_limit_total_mb=MAX_GALLERY_TOTAL_MB,
+        gallery_limit_file_mb=MAX_GALLERY_FILE_MB,
         message=message,
         error=error,
         active_page="admin",
@@ -396,6 +412,7 @@ def upload_gallery_image():
             )
 
         uploaded_count = 0
+        skipped_oversize = 0
         for image in images:
             if not image or not image.filename:
                 continue
@@ -404,6 +421,11 @@ def upload_gallery_image():
                 continue
 
             try:
+                file_size = _get_uploaded_file_size(image)
+                if file_size > MAX_GALLERY_FILE_BYTES:
+                    skipped_oversize += 1
+                    continue
+
                 ext = os.path.splitext(image.filename)[1].lower()
                 stored_name = f"{uuid4().hex}{ext}"
                 image_path = os.path.join(GALLERY_UPLOAD_DIR, stored_name)
@@ -429,15 +451,24 @@ def upload_gallery_image():
                 continue
 
         if uploaded_count == 0:
+            if skipped_oversize > 0:
+                return redirect(
+                    url_for(
+                        "dashboard",
+                        err=f"No images uploaded. {skipped_oversize} file(s) exceeded {MAX_GALLERY_FILE_MB}MB per-image limit.",
+                    )
+                )
             return redirect(url_for("dashboard", err="No valid image files uploaded."))
 
         msg = f"{uploaded_count} image(s) uploaded successfully." if uploaded_count > 1 else "1 image uploaded successfully."
+        if skipped_oversize > 0:
+            msg = f"{msg} {skipped_oversize} file(s) skipped (>{MAX_GALLERY_FILE_MB}MB each)."
         return redirect(url_for("dashboard", msg=msg))
     except RequestEntityTooLarge:
         return redirect(
             url_for(
                 "dashboard",
-                err=f"Upload size exceeded limit. Please upload smaller images or reduce batch size (max {MAX_GALLERY_FILES_PER_REQUEST} files per request).",
+                err=f"Upload size exceeded limit. Max {MAX_GALLERY_FILES_PER_REQUEST} files and ~{MAX_GALLERY_TOTAL_MB}MB per request.",
             )
         )
     except Exception as exc:

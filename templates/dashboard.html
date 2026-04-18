@@ -47,6 +47,9 @@
                     <div class="col-md-12">
                         <label class="form-label">Image Files (Multiple Select)</label>
                         <input type="file" name="images" class="form-control" accept=".jpg,.jpeg,.png,.webp" multiple required>
+                        <small class="text-muted d-block mt-2">
+                            Max {{ gallery_limit_count }} files per upload, approx {{ gallery_limit_total_mb }}MB per request, and {{ gallery_limit_file_mb }}MB per image.
+                        </small>
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary mt-3">Upload Image</button>
