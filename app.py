@@ -21,7 +21,7 @@ app.config.update(
 
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 GALLERY_UPLOAD_DIR = os.path.join(app.static_folder, "uploads", "gallery")
-MAX_GALLERY_FILES_PER_REQUEST = int(os.getenv("MAX_GALLERY_FILES_PER_REQUEST", "20"))
+MAX_GALLERY_FILES_PER_REQUEST = int(os.getenv("MAX_GALLERY_FILES_PER_REQUEST", "100"))
 MAX_GALLERY_TOTAL_BYTES = int(os.getenv("MAX_GALLERY_TOTAL_BYTES", str(80 * 1024 * 1024)))
 GALLERY_CATEGORIES = [
     ("computer_labs", "Computer Labs"),
@@ -437,7 +437,7 @@ def upload_gallery_image():
         return redirect(
             url_for(
                 "dashboard",
-                err="Upload size exceeded limit. Please upload fewer/smaller images (recommended: 10-20 files per batch).",
+                err=f"Upload size exceeded limit. Please upload smaller images or reduce batch size (max {MAX_GALLERY_FILES_PER_REQUEST} files per request).",
             )
         )
     except Exception as exc:
