@@ -1,72 +1,46 @@
-# PostgreSQL Complete Setup
+# Supabase Complete Setup
 
-Use this checklist to fully switch this project from SQLite to PostgreSQL.
+Use this checklist to run the full project database on Supabase (managed PostgreSQL).
 
-## 1) Install PostgreSQL on Windows (Fresh Laptop)
+## 1) Create Supabase project
 
-Your machine has `winget` available, so install PostgreSQL with:
+1. Create a new Supabase project.
+2. In Supabase dashboard open: `Project Settings -> Database`.
+3. Copy the PostgreSQL connection URL (pooler URL is recommended).
 
-```powershell
-winget install -e --id PostgreSQL.PostgreSQL
-```
+## 2) Required environment variables
 
-During installation:
-
-1. Set a password for user `postgres` and remember it.
-2. Keep default port as `5432`.
-3. Complete install and let service start.
-
-After install, open a new PowerShell window and verify:
+Set these in local PowerShell:
 
 ```powershell
-& "C:\Program Files\PostgreSQL\17\bin\psql.exe" --version
-```
-
-If version command fails, check this alternate path:
-
-```powershell
-& "C:\Program Files\PostgreSQL\16\bin\psql.exe" --version
-```
-
-## 2) Create Local Database
-
-Use `psql` and create DB:
-
-```powershell
-& "C:\Program Files\PostgreSQL\17\bin\psql.exe" -U postgres -h localhost -p 5432 -c "CREATE DATABASE college_db;"
-```
-
-If DB already exists, you can ignore the error.
-
-## 3) Required Environment Variables
-
-Set these in local terminal (PowerShell):
-
-```powershell
-$env:DATABASE_URL="postgresql://postgres:your_password@localhost:5432/college_db"
-$env:PGSSLMODE="disable"
+$env:SUPABASE_DB_URL="postgresql://postgres.xxxxx:[password]@aws-0-xx-xx-xx.pooler.supabase.com:6543/postgres"
+$env:PGSSLMODE="require"
 $env:SQLITE_SOURCE_PATH="college.db"
 $env:FLASK_SECRET_KEY="change-this-in-production"
 $env:FLASK_SECURE_COOKIE="0"
 ```
 
-For Render/Cloud PostgreSQL, use:
+For production (Render):
 
 ```powershell
-$env:DATABASE_URL="postgresql://user:password@host:5432/dbname"
-$env:PGSSLMODE="require"
-$env:SQLITE_SOURCE_PATH="college.db"
-$env:FLASK_SECRET_KEY="your-strong-secret"
-$env:FLASK_SECURE_COOKIE="1"
+SUPABASE_DB_URL=<supabase-postgres-url>
+PGSSLMODE=require
+FLASK_SECRET_KEY=<strong-secret>
+FLASK_SECURE_COOKIE=1
 ```
 
-## 4) Install/Update Dependencies
+Notes:
+
+1. App now prefers `SUPABASE_DB_URL`.
+2. `DATABASE_URL` still works as fallback.
+
+## 3) Install/update dependencies
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-## 5) Transfer Complete Data from SQLite to PostgreSQL
+## 4) Migrate SQLite data to Supabase
 
 Run migration script:
 
@@ -74,51 +48,50 @@ Run migration script:
 .\.venv\Scripts\python.exe migrate_sqlite_to_postgres.py
 ```
 
-If you want a fresh full replace each run (clear PostgreSQL tables first):
+For full replace (truncate target tables first):
 
 ```powershell
 $env:MIGRATION_TRUNCATE="1"
 .\.venv\Scripts\python.exe migrate_sqlite_to_postgres.py
 ```
 
-## 6) Start Application with PostgreSQL
+## 5) Start app with Supabase DB
+
+```powershell
+run_app.cmd
+```
+
+or:
 
 ```powershell
 .\.venv\Scripts\python.exe app.py
 ```
 
-or with gunicorn:
+## 6) Verify application flow
 
-```powershell
-gunicorn -c gunicorn.conf.py app:app
-```
+1. Open website and check home/gallery pages.
+2. Test admission form submit.
+3. Test admin login and gallery upload/delete.
+4. Check health endpoints: `/health` and `/healthz`.
 
-## 7) Verify Migration Counts
+## 7) Common errors and fixes
 
-```powershell
-.\.venv\Scripts\python.exe check_db.py
-.\.venv\Scripts\python.exe check_tables.py
-```
+1. Error: `SUPABASE_DB_URL ... is required`
+   - Fix: set `SUPABASE_DB_URL` in the same terminal/session.
 
-## 8) Common Errors and Fix
-
-1. Error: `DATABASE_URL is required`
-   - Fix: set `$env:DATABASE_URL=...` in same terminal before running script.
-
-2. Error: SSL connection issues
-   - Local DB: use `PGSSLMODE=disable`
-   - Cloud DB: use `PGSSLMODE=require`
+2. Error: SSL connection failed
+   - Fix: ensure `PGSSLMODE=require` for Supabase.
 
 3. Error: authentication failed
-   - Recheck username/password/host/port/db name in `DATABASE_URL`.
+   - Fix: verify username/password/host/port from Supabase connection string.
 
-4. Error: `psql` not recognized
-   - Use full path command shown in Step 1 and Step 2.
+4. Timeout during DB connect
+   - Fix: ensure your network allows outbound connection to Supabase and use pooler URL.
 
-## 9) Final Status Condition
+## 8) Final success condition
 
-Migration is complete when:
+Setup is complete when:
 
-1. `migrate_sqlite_to_postgres.py` prints "Migration completed successfully".
-2. `check_db.py` shows tables and expected row counts.
-3. Website opens and admission/admin/gallery work normally.
+1. `migrate_sqlite_to_postgres.py` prints `Migration completed successfully`.
+2. Website opens using Supabase-backed data.
+3. Admission/admin/gallery flows work without local PostgreSQL.

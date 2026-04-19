@@ -5,7 +5,7 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn -c gunicorn.conf.py app:app
     envVars:
-      - key: DATABASE_URL
+      - key: SUPABASE_DB_URL
         sync: false
       - key: PGSSLMODE
         value: require

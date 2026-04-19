@@ -11,16 +11,19 @@ def _normalize_database_url(database_url):
 
 
 def _get_database_url():
-    database_url = os.getenv("DATABASE_URL", "").strip()
+    # Prefer Supabase URL for managed PostgreSQL usage.
+    database_url = os.getenv("SUPABASE_DB_URL", "").strip()
     if not database_url:
-        database_url = os.getenv("SUPABASE_DB_URL", "").strip()
+        database_url = os.getenv("DATABASE_URL", "").strip()
     if not database_url:
-        raise RuntimeError("DATABASE_URL (or SUPABASE_DB_URL) is required for PostgreSQL connection.")
+        raise RuntimeError("SUPABASE_DB_URL (or DATABASE_URL) is required for Supabase PostgreSQL connection.")
     return _normalize_database_url(database_url)
 
 
 def _detect_default_ssl_mode(database_url):
     if "supabase.co" in database_url:
+        return "require"
+    if "pooler.supabase.com" in database_url:
         return "require"
     return ""
 
@@ -128,4 +131,4 @@ for admin_id, stored_password in admin_rows:
 db.commit()
 cursor = db.cursor()
 
-print("PostgreSQL Database Connected Successfully")
+print("Supabase/PostgreSQL Database Connected Successfully")

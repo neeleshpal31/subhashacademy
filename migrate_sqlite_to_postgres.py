@@ -6,12 +6,21 @@ import psycopg2
 
 
 def get_database_url() -> str:
-    database_url = os.getenv("DATABASE_URL", "").strip()
+    database_url = os.getenv("SUPABASE_DB_URL", "").strip()
     if not database_url:
-        raise RuntimeError("DATABASE_URL is required. Set PostgreSQL connection string first.")
+        database_url = os.getenv("DATABASE_URL", "").strip()
+    if not database_url:
+        raise RuntimeError("SUPABASE_DB_URL (or DATABASE_URL) is required. Set Supabase PostgreSQL connection string first.")
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
     return database_url
+
+
+def detect_sslmode(database_url: str) -> str:
+    lowered = database_url.lower()
+    if "supabase.co" in lowered or "pooler.supabase.com" in lowered:
+        return "require"
+    return ""
 
 
 def get_sqlite_path() -> str:
@@ -196,7 +205,7 @@ def main() -> None:
 
     database_url = get_database_url()
     connect_kwargs: Dict[str, object] = {"connect_timeout": 15}
-    sslmode = os.getenv("PGSSLMODE", "").strip()
+    sslmode = os.getenv("PGSSLMODE", "").strip() or detect_sslmode(database_url)
     if sslmode:
         connect_kwargs["sslmode"] = sslmode
 

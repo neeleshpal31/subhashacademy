@@ -34,15 +34,16 @@ This creates the required tables:
 
 Set these variables in Render:
 
-1. `DATABASE_URL=<Supabase PostgreSQL URL>`
+1. `SUPABASE_DB_URL=<Supabase PostgreSQL URL>`
 2. `PGSSLMODE=require`
 3. `FLASK_SECRET_KEY=<strong-random-secret>`
 4. `FLASK_SECURE_COOKIE=1`
 
 Notes:
 
-1. App also supports `SUPABASE_DB_URL` as a fallback if `DATABASE_URL` is not set.
-2. If URL starts with `postgres://`, code auto-converts to `postgresql://`.
+1. App uses `SUPABASE_DB_URL` as primary DB connection variable.
+2. `DATABASE_URL` is still supported as fallback.
+3. If URL starts with `postgres://`, code auto-converts to `postgresql://`.
 
 ## 5) Deploy and verify
 
