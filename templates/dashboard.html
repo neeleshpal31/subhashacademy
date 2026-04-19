@@ -136,6 +136,112 @@ const galleryUploadForm = document.getElementById('galleryUploadForm');
 const galleryUploadButton = document.getElementById('galleryUploadButton');
 const galleryUploadStatus = document.getElementById('galleryUploadStatus');
 
+const CLIENT_IMAGE_MAX_DIMENSION = 1920;
+const CLIENT_IMAGE_TARGET_BYTES = 5 * 1024 * 1024; // 5MB
+const CLIENT_IMAGE_ABSOLUTE_BYTES = 12 * 1024 * 1024; // 12MB fallback cap
+
+function replaceFileExtension(fileName, newExtension) {
+    const idx = fileName.lastIndexOf('.');
+    if (idx <= 0) {
+        return fileName + newExtension;
+    }
+    return fileName.slice(0, idx) + newExtension;
+}
+
+function loadImageFromFile(file) {
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            resolve(img);
+        };
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error('Image decode failed'));
+        };
+        img.src = url;
+    });
+}
+
+function canvasToBlob(canvas, type, quality) {
+    return new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), type, quality);
+    });
+}
+
+async function optimizeFileForUpload(file) {
+    if (!file || !file.type || !file.type.startsWith('image/')) {
+        return file;
+    }
+
+    try {
+        const image = await loadImageFromFile(file);
+        let width = image.naturalWidth || image.width;
+        let height = image.naturalHeight || image.height;
+
+        if (!width || !height) {
+            return file;
+        }
+
+        const maxDim = Math.max(width, height);
+        if (maxDim > CLIENT_IMAGE_MAX_DIMENSION) {
+            const ratio = CLIENT_IMAGE_MAX_DIMENSION / maxDim;
+            width = Math.max(1, Math.round(width * ratio));
+            height = Math.max(1, Math.round(height * ratio));
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            return file;
+        }
+
+        ctx.drawImage(image, 0, 0, width, height);
+
+        let targetType = 'image/jpeg';
+        let targetExtension = '.jpg';
+        if (file.type === 'image/webp') {
+            targetType = 'image/webp';
+            targetExtension = '.webp';
+        } else if (file.type === 'image/png') {
+            targetType = 'image/webp';
+            targetExtension = '.webp';
+        }
+
+        let quality = 0.82;
+        let blob = await canvasToBlob(canvas, targetType, quality);
+
+        if (!blob) {
+            return file;
+        }
+
+        while (blob.size > CLIENT_IMAGE_TARGET_BYTES && quality > 0.46) {
+            quality -= 0.08;
+            blob = await canvasToBlob(canvas, targetType, quality);
+            if (!blob) {
+                return file;
+            }
+        }
+
+        if (blob.size >= file.size && file.size <= CLIENT_IMAGE_TARGET_BYTES) {
+            return file;
+        }
+
+        const newName = replaceFileExtension(file.name, targetExtension);
+        return new File([blob], newName, {
+            type: targetType,
+            lastModified: Date.now(),
+        });
+    } catch (_error) {
+        return file;
+    }
+}
+
 async function uploadInBatches(form) {
     const category = form.querySelector('select[name="category"]').value;
     const title = form.querySelector('input[name="title"]').value || '';
@@ -156,11 +262,35 @@ async function uploadInBatches(form) {
         return;
     }
 
+    const preparedFiles = [];
+    let skippedVeryLarge = 0;
+
+    for (let i = 0; i < files.length; i++) {
+        if (galleryUploadStatus) {
+            galleryUploadStatus.textContent = `Optimizing image ${i + 1}/${files.length}...`;
+        }
+
+        const prepared = await optimizeFileForUpload(files[i]);
+        if (prepared.size > CLIENT_IMAGE_ABSOLUTE_BYTES) {
+            skippedVeryLarge += 1;
+            continue;
+        }
+        preparedFiles.push(prepared);
+    }
+
+    if (!preparedFiles.length) {
+        alert('Selected images are too large. Please choose smaller images.');
+        if (galleryUploadStatus) {
+            galleryUploadStatus.textContent = '';
+        }
+        return;
+    }
+
     const batches = [];
     let currentBatch = [];
     let currentBytes = 0;
 
-    files.forEach((file) => {
+    preparedFiles.forEach((file) => {
         const wouldOverflowCount = currentBatch.length >= batchSize;
         const wouldOverflowSize = (currentBytes + file.size) > batchTargetBytes;
         if (currentBatch.length > 0 && (wouldOverflowCount || wouldOverflowSize)) {
@@ -226,6 +356,9 @@ async function uploadInBatches(form) {
         let finalMsg = `${successCount} image(s) uploaded successfully.`;
         if (invalidCount > 0) {
             finalMsg += ` ${invalidCount} file(s) were skipped (invalid/corrupt/unsupported).`;
+        }
+        if (skippedVeryLarge > 0) {
+            finalMsg += ` ${skippedVeryLarge} file(s) skipped (still too large).`;
         }
         if (!successCount && lastMessage) {
             finalMsg = lastMessage;
