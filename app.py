@@ -1,11 +1,13 @@
 import os
 import mimetypes
 import traceback
+from io import BytesIO
 from uuid import uuid4
 
 from flask import Flask, Response, jsonify, render_template, request, redirect, session, url_for
 from werkzeug.exceptions import RequestEntityTooLarge
 from werkzeug.security import check_password_hash
+from PIL import Image, ImageOps, UnidentifiedImageError
 import config
 
 db = config.db
@@ -26,6 +28,9 @@ MAX_GALLERY_TOTAL_BYTES = int(os.getenv("MAX_GALLERY_TOTAL_BYTES", str(100 * 102
 MAX_GALLERY_FILE_BYTES = int(os.getenv("MAX_GALLERY_FILE_BYTES", str(25 * 1024 * 1024)))
 MAX_GALLERY_BATCH_FILES = int(os.getenv("MAX_GALLERY_BATCH_FILES", "8"))
 MAX_GALLERY_BATCH_MB = int(os.getenv("MAX_GALLERY_BATCH_MB", "60"))
+MAX_GALLERY_IMAGE_DIMENSION = int(os.getenv("MAX_GALLERY_IMAGE_DIMENSION", "1920"))
+MAX_GALLERY_JPEG_QUALITY = max(40, min(95, int(os.getenv("MAX_GALLERY_JPEG_QUALITY", "78"))))
+MAX_GALLERY_WEBP_QUALITY = max(40, min(95, int(os.getenv("MAX_GALLERY_WEBP_QUALITY", "76"))))
 MAX_GALLERY_TOTAL_MB = max(1, MAX_GALLERY_TOTAL_BYTES // (1024 * 1024))
 MAX_GALLERY_FILE_MB = max(1, MAX_GALLERY_FILE_BYTES // (1024 * 1024))
 GALLERY_CATEGORIES = [
@@ -76,6 +81,46 @@ def _get_uploaded_file_size(file_storage):
         return size
     except Exception:
         return 0
+
+
+def _get_lanczos_filter():
+    if hasattr(Image, "Resampling"):
+        return Image.Resampling.LANCZOS
+    return Image.LANCZOS
+
+
+def _optimize_gallery_image(raw_bytes, original_filename):
+    try:
+        with Image.open(BytesIO(raw_bytes)) as source_image:
+            image = ImageOps.exif_transpose(source_image)
+            max_dimension = max(image.size)
+            if max_dimension > MAX_GALLERY_IMAGE_DIMENSION:
+                image.thumbnail((MAX_GALLERY_IMAGE_DIMENSION, MAX_GALLERY_IMAGE_DIMENSION), _get_lanczos_filter())
+
+            ext = os.path.splitext(original_filename or "")[1].lower()
+            has_alpha = "A" in image.getbands()
+            out_stream = BytesIO()
+
+            if ext == ".png" and has_alpha:
+                image.save(out_stream, format="PNG", optimize=True, compress_level=8)
+                return out_stream.getvalue(), "image/png", ".png"
+
+            if ext == ".webp":
+                target = image.convert("RGBA") if has_alpha else image.convert("RGB")
+                target.save(out_stream, format="WEBP", quality=MAX_GALLERY_WEBP_QUALITY, method=6)
+                return out_stream.getvalue(), "image/webp", ".webp"
+
+            # Default to JPEG for smaller file sizes and broad compatibility.
+            image.convert("RGB").save(
+                out_stream,
+                format="JPEG",
+                quality=MAX_GALLERY_JPEG_QUALITY,
+                optimize=True,
+                progressive=True,
+            )
+            return out_stream.getvalue(), "image/jpeg", ".jpg"
+    except (UnidentifiedImageError, OSError, ValueError):
+        return None, None, None
 
 
 def _ensure_db_connection():
@@ -410,42 +455,40 @@ def _process_gallery_upload(images, title, description, category):
             "status": 400,
         }
 
-    if len(images) > MAX_GALLERY_FILES_PER_REQUEST:
-        return {
-            "ok": False,
-            "error": f"Too many files in one request. Please upload at most {MAX_GALLERY_FILES_PER_REQUEST} files at a time.",
-            "status": 400,
-        }
-
     uploaded_count = 0
-    skipped_oversize = 0
+    invalid_files = 0
     for image in images:
         if not image or not image.filename:
             continue
 
         if not _is_allowed_image(image.filename):
+            invalid_files += 1
             continue
 
         try:
-            file_size = _get_uploaded_file_size(image)
-            if file_size > MAX_GALLERY_FILE_BYTES:
-                skipped_oversize += 1
-                continue
-
-            ext = os.path.splitext(image.filename)[1].lower()
-            stored_name = f"{uuid4().hex}{ext}"
             image_bytes = image.read()
             if not image_bytes:
+                invalid_files += 1
                 continue
 
-            mime_type = (image.mimetype or "").strip() or mimetypes.guess_type(stored_name)[0] or "application/octet-stream"
+            optimized_bytes, mime_type, optimized_ext = _optimize_gallery_image(image_bytes, image.filename)
+            if not optimized_bytes:
+                invalid_files += 1
+                continue
+
+            if MAX_GALLERY_FILE_BYTES > 0 and len(optimized_bytes) > MAX_GALLERY_FILE_BYTES:
+                invalid_files += 1
+                continue
+
+            stored_name = f"{uuid4().hex}{optimized_ext}"
+            mime_type = mime_type or (image.mimetype or "").strip() or mimetypes.guess_type(stored_name)[0] or "application/octet-stream"
 
             saved = _execute_write_safe(
                 """
                 INSERT INTO gallery_images (title, description, filename, category, image_data, mime_type)
                 VALUES (%s, %s, %s, %s, %s, %s)
                 """,
-                (title, description, stored_name, category, image_bytes, mime_type),
+                (title, description, stored_name, category, optimized_bytes, mime_type),
             )
             if saved:
                 uploaded_count += 1
@@ -455,27 +498,21 @@ def _process_gallery_upload(images, title, description, category):
             continue
 
     if uploaded_count == 0:
-        if skipped_oversize > 0:
-            return {
-                "ok": False,
-                "error": f"No images uploaded. {skipped_oversize} file(s) exceeded {MAX_GALLERY_FILE_MB}MB per-image limit.",
-                "status": 400,
-            }
         return {
             "ok": False,
-            "error": "No valid image files uploaded.",
+            "error": "No valid image files uploaded. Please upload clear JPG/PNG/WEBP images.",
             "status": 400,
         }
 
     msg = f"{uploaded_count} image(s) uploaded successfully." if uploaded_count > 1 else "1 image uploaded successfully."
-    if skipped_oversize > 0:
-        msg = f"{msg} {skipped_oversize} file(s) skipped (>{MAX_GALLERY_FILE_MB}MB each)."
+    if invalid_files > 0:
+        msg = f"{msg} {invalid_files} file(s) were skipped (invalid/corrupt/unsupported)."
 
     return {
         "ok": True,
         "message": msg,
         "uploaded_count": uploaded_count,
-        "skipped_oversize": skipped_oversize,
+        "invalid_files": invalid_files,
         "status": 200,
     }
 
@@ -498,7 +535,7 @@ def upload_gallery_image():
         return redirect(
             url_for(
                 "dashboard",
-                err=f"Upload size exceeded limit. Max {MAX_GALLERY_FILES_PER_REQUEST} files and ~{MAX_GALLERY_TOTAL_MB}MB per request.",
+                err=f"Upload payload exceeded server limit (~{MAX_GALLERY_TOTAL_MB}MB per request). Please retry; batching will continue automatically.",
             )
         )
     except Exception as exc:
@@ -525,7 +562,7 @@ def upload_gallery_image_json():
         return (
             jsonify(
                 ok=False,
-                error=f"Upload size exceeded limit. Max {MAX_GALLERY_FILES_PER_REQUEST} files and ~{MAX_GALLERY_TOTAL_MB}MB per request.",
+                error=f"Upload payload exceeded server limit (~{MAX_GALLERY_TOTAL_MB}MB per request).",
             ),
             413,
         )
