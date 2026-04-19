@@ -1,6 +1,7 @@
 import os
 import mimetypes
 import traceback
+from datetime import datetime
 from io import BytesIO
 from uuid import uuid4
 
@@ -20,6 +21,16 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=os.getenv("FLASK_SECURE_COOKIE", "0") == "1",
 )
+
+WEBSITE_DEVELOPER_NAME = os.getenv("WEBSITE_DEVELOPER_NAME", "Your Name")
+
+
+@app.context_processor
+def inject_site_meta():
+    return {
+        "site_year": datetime.now().year,
+        "site_developer_name": WEBSITE_DEVELOPER_NAME,
+    }
 
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 GALLERY_UPLOAD_DIR = os.path.join(app.static_folder, "uploads", "gallery")
