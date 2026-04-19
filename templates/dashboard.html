@@ -207,7 +207,13 @@ async function uploadInBatches(form) {
                 return;
             }
 
-            const data = await res.json();
+            const raw = await res.text();
+            let data = {};
+            try {
+                data = raw ? JSON.parse(raw) : {};
+            } catch (_err) {
+                throw new Error('Upload server error (invalid response). Please retry with fewer images per batch.');
+            }
             if (!res.ok || !data.ok) {
                 throw new Error(data.error || 'Upload failed for one of the batches.');
             }

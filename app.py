@@ -24,11 +24,13 @@ app.config.update(
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 GALLERY_UPLOAD_DIR = os.path.join(app.static_folder, "uploads", "gallery")
 MAX_GALLERY_FILES_PER_REQUEST = int(os.getenv("MAX_GALLERY_FILES_PER_REQUEST", "100"))
-MAX_GALLERY_TOTAL_BYTES = int(os.getenv("MAX_GALLERY_TOTAL_BYTES", str(100 * 1024 * 1024)))
-MAX_GALLERY_FILE_BYTES = int(os.getenv("MAX_GALLERY_FILE_BYTES", str(25 * 1024 * 1024)))
-MAX_GALLERY_BATCH_FILES = int(os.getenv("MAX_GALLERY_BATCH_FILES", "8"))
-MAX_GALLERY_BATCH_MB = int(os.getenv("MAX_GALLERY_BATCH_MB", "60"))
+MAX_GALLERY_TOTAL_BYTES = int(os.getenv("MAX_GALLERY_TOTAL_BYTES", str(20 * 1024 * 1024)))
+MAX_GALLERY_FILE_BYTES = int(os.getenv("MAX_GALLERY_FILE_BYTES", str(15 * 1024 * 1024)))
+# Keep hosted uploads stable by using conservative batch defaults.
+MAX_GALLERY_BATCH_FILES = int(os.getenv("MAX_GALLERY_BATCH_FILES", "1"))
+MAX_GALLERY_BATCH_MB = int(os.getenv("MAX_GALLERY_BATCH_MB", "6"))
 MAX_GALLERY_IMAGE_DIMENSION = int(os.getenv("MAX_GALLERY_IMAGE_DIMENSION", "1920"))
+MAX_GALLERY_IMAGE_PIXELS = int(os.getenv("MAX_GALLERY_IMAGE_PIXELS", str(20 * 1000 * 1000)))
 MAX_GALLERY_JPEG_QUALITY = max(40, min(95, int(os.getenv("MAX_GALLERY_JPEG_QUALITY", "78"))))
 MAX_GALLERY_WEBP_QUALITY = max(40, min(95, int(os.getenv("MAX_GALLERY_WEBP_QUALITY", "76"))))
 MAX_GALLERY_TOTAL_MB = max(1, MAX_GALLERY_TOTAL_BYTES // (1024 * 1024))
@@ -92,6 +94,12 @@ def _get_lanczos_filter():
 def _optimize_gallery_image(raw_bytes, original_filename):
     try:
         with Image.open(BytesIO(raw_bytes)) as source_image:
+            width, height = source_image.size
+            if width <= 0 or height <= 0:
+                return None, None, None
+            if (width * height) > MAX_GALLERY_IMAGE_PIXELS:
+                return None, None, None
+
             image = ImageOps.exif_transpose(source_image)
             max_dimension = max(image.size)
             if max_dimension > MAX_GALLERY_IMAGE_DIMENSION:
