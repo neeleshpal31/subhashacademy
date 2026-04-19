@@ -30,7 +30,7 @@ MAX_GALLERY_FILE_BYTES = int(os.getenv("MAX_GALLERY_FILE_BYTES", str(15 * 1024 *
 MAX_GALLERY_BATCH_FILES = int(os.getenv("MAX_GALLERY_BATCH_FILES", "1"))
 MAX_GALLERY_BATCH_MB = int(os.getenv("MAX_GALLERY_BATCH_MB", "6"))
 MAX_GALLERY_IMAGE_DIMENSION = int(os.getenv("MAX_GALLERY_IMAGE_DIMENSION", "1920"))
-MAX_GALLERY_IMAGE_PIXELS = int(os.getenv("MAX_GALLERY_IMAGE_PIXELS", str(20 * 1000 * 1000)))
+MAX_GALLERY_IMAGE_PIXELS = int(os.getenv("MAX_GALLERY_IMAGE_PIXELS", str(80 * 1000 * 1000)))
 MAX_GALLERY_JPEG_QUALITY = max(40, min(95, int(os.getenv("MAX_GALLERY_JPEG_QUALITY", "78"))))
 MAX_GALLERY_WEBP_QUALITY = max(40, min(95, int(os.getenv("MAX_GALLERY_WEBP_QUALITY", "76"))))
 MAX_GALLERY_TOTAL_MB = max(1, MAX_GALLERY_TOTAL_BYTES // (1024 * 1024))
@@ -96,9 +96,9 @@ def _optimize_gallery_image(raw_bytes, original_filename):
         with Image.open(BytesIO(raw_bytes)) as source_image:
             width, height = source_image.size
             if width <= 0 or height <= 0:
-                return None, None, None
+                return None, None, None, "invalid"
             if (width * height) > MAX_GALLERY_IMAGE_PIXELS:
-                return None, None, None
+                return None, None, None, "pixels"
 
             image = ImageOps.exif_transpose(source_image)
             max_dimension = max(image.size)
@@ -110,13 +110,14 @@ def _optimize_gallery_image(raw_bytes, original_filename):
             out_stream = BytesIO()
 
             if ext == ".png" and has_alpha:
-                image.save(out_stream, format="PNG", optimize=True, compress_level=8)
-                return out_stream.getvalue(), "image/png", ".png"
+                # Transparent PNGs can remain very heavy; WEBP keeps alpha with much smaller payload.
+                image.convert("RGBA").save(out_stream, format="WEBP", quality=MAX_GALLERY_WEBP_QUALITY, method=6)
+                return out_stream.getvalue(), "image/webp", ".webp", "ok"
 
             if ext == ".webp":
                 target = image.convert("RGBA") if has_alpha else image.convert("RGB")
                 target.save(out_stream, format="WEBP", quality=MAX_GALLERY_WEBP_QUALITY, method=6)
-                return out_stream.getvalue(), "image/webp", ".webp"
+                return out_stream.getvalue(), "image/webp", ".webp", "ok"
 
             # Default to JPEG for smaller file sizes and broad compatibility.
             image.convert("RGB").save(
@@ -126,9 +127,9 @@ def _optimize_gallery_image(raw_bytes, original_filename):
                 optimize=True,
                 progressive=True,
             )
-            return out_stream.getvalue(), "image/jpeg", ".jpg"
-    except (UnidentifiedImageError, OSError, ValueError):
-        return None, None, None
+            return out_stream.getvalue(), "image/jpeg", ".jpg", "ok"
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+        return None, None, None, "invalid"
 
 
 def _ensure_db_connection():
@@ -465,6 +466,8 @@ def _process_gallery_upload(images, title, description, category):
 
     uploaded_count = 0
     invalid_files = 0
+    skipped_pixel_limit = 0
+    skipped_size_limit = 0
     for image in images:
         if not image or not image.filename:
             continue
@@ -479,12 +482,15 @@ def _process_gallery_upload(images, title, description, category):
                 invalid_files += 1
                 continue
 
-            optimized_bytes, mime_type, optimized_ext = _optimize_gallery_image(image_bytes, image.filename)
+            optimized_bytes, mime_type, optimized_ext, optimize_state = _optimize_gallery_image(image_bytes, image.filename)
             if not optimized_bytes:
+                if optimize_state == "pixels":
+                    skipped_pixel_limit += 1
                 invalid_files += 1
                 continue
 
             if MAX_GALLERY_FILE_BYTES > 0 and len(optimized_bytes) > MAX_GALLERY_FILE_BYTES:
+                skipped_size_limit += 1
                 invalid_files += 1
                 continue
 
@@ -506,9 +512,15 @@ def _process_gallery_upload(images, title, description, category):
             continue
 
     if uploaded_count == 0:
+        reason_parts = []
+        if skipped_size_limit > 0:
+            reason_parts.append(f"{skipped_size_limit} file(s) are still too large after compression")
+        if skipped_pixel_limit > 0:
+            reason_parts.append(f"{skipped_pixel_limit} file(s) exceed allowed resolution")
+        reason_hint = f" ({'; '.join(reason_parts)})" if reason_parts else ""
         return {
             "ok": False,
-            "error": "No valid image files uploaded. Please upload clear JPG/PNG/WEBP images.",
+            "error": f"No valid image files uploaded{reason_hint}. Please upload clear JPG/PNG/WEBP images.",
             "status": 400,
         }
 
